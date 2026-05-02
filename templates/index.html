@@ -1,0 +1,43 @@
+{% extends "base_mobile.html" if is_mobile else "base.html" %}
+{% block title %}Polls · The Meat Ensemble{% endblock %}
+
+{% block content %}
+  <h1>Upcoming gatherings</h1>
+  <p class="meta">
+    Vote on when we meet and where we eat. Members vote, the admin opens and closes polls.
+  </p>
+
+  {% if not current_user %}
+    <p>
+      <a class="button" href="{{ url_for('auth.login') }}">Log in to vote</a>
+    </p>
+  {% endif %}
+
+  {% if polls %}
+    {% for poll in polls %}
+      <article class="card">
+        <h2 style="margin-bottom: 0.25rem;">
+          {% if current_user %}
+            <a href="{{ url_for('polls.view_poll', poll_id=poll.id) }}">{{ poll.title }}</a>
+          {% else %}
+            {{ poll.title }}
+          {% endif %}
+        </h2>
+        <p class="meta">
+          <span class="pill {{ poll.status }}">{{ poll.status }}</span>
+          <span class="pill">{{ poll.poll_type }}</span>
+          <span class="pill">{{ poll.vote_mode }}</span>
+          · {{ poll.option_count }} options
+          · started by {{ poll.creator }} on {{ poll.created_at }}
+        </p>
+        {% if poll.description %}
+          <p>{{ poll.description }}</p>
+        {% endif %}
+      </article>
+    {% endfor %}
+  {% else %}
+    <p>No polls yet.{% if current_user and current_user.is_admin %}
+      <a href="{{ url_for('admin.new_poll') }}">Create the first one.</a>
+    {% endif %}</p>
+  {% endif %}
+{% endblock %}

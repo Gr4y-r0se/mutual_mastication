@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Admin · The Meat Ensemble{% endblock %}
+
+{% block content %}
+  <h1>Admin dashboard</h1>
+
+  <div class="row-actions" style="margin-bottom: 1.5rem;">
+    <a class="button" href="{{ url_for('admin.new_poll') }}">+ New poll</a>
+    <a class="button secondary" href="{{ url_for('admin.new_user') }}">+ Add user</a>
+    <a class="button secondary" href="{{ url_for('admin.restaurants') }}">
+      Restaurant approvals{% if pending_count %} ({{ pending_count }} pending){% endif %}
+    </a>
+  </div>
+
+  <h2>Polls</h2>
+  {% if polls %}
+    <table>
+      <thead>
+        <tr><th>Title</th><th>Type</th><th>Mode</th><th>Status</th><th>Created</th></tr>
+      </thead>
+      <tbody>
+        {% for p in polls %}
+          <tr>
+            <td><a href="{{ url_for('polls.view_poll', poll_id=p.id) }}">{{ p.title }}</a></td>
+            <td>{{ p.poll_type }}</td>
+            <td>{{ p.vote_mode }}</td>
+            <td><span class="pill {{ p.status }}">{{ p.status }}</span></td>
+            <td class="meta">{{ p.created_at }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No polls yet.</p>
+  {% endif %}
+
+  <h2 style="margin-top: 2rem;">Members</h2>
+  <table>
+    <thead>
+      <tr><th>Username</th><th>Email</th><th>Role</th><th>Joined</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for u in users %}
+        <tr>
+          <td>{{ u.username }}</td>
+          <td class="meta">{{ u.email }}</td>
+          <td>{% if u.is_admin %}<span class="pill">admin</span>{% else %}member{% endif %}</td>
+          <td class="meta">{{ u.created_at }}</td>
+          <td>
+            <div class="row-actions">
+              {% if u.id != current_user.id %}
+                <form class="inline-form" method="post"
+                      action="{{ url_for('admin.toggle_admin', user_id=u.id) }}"
+                      onsubmit="return confirm('Toggle admin role for {{ u.username }}?');">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="secondary">
+                    {{ 'Demote' if u.is_admin else 'Promote' }}
+                  </button>
+                </form>
+                <form class="inline-form" method="post"
+                      action="{{ url_for('admin.delete_user', user_id=u.id) }}"
+                      onsubmit="return confirm('Delete {{ u.username }}? This cannot be undone.');">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="secondary">Delete</button>
+                </form>
+              {% endif %}
+              <form class="inline-form" method="post"
+                    action="{{ url_for('admin.unlock_user', user_id=u.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="secondary">Unlock</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

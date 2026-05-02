@@ -1,0 +1,32 @@
+{% extends "base_mobile.html" if is_mobile else "base.html" %}
+{% block title %}Profile · The Meat Ensemble{% endblock %}
+
+{% block content %}
+  <h1>{{ user.username }}</h1>
+  <p class="meta">
+    {{ user.email }}
+    {% if user.is_admin %}<span class="pill">admin</span>{% endif %}
+  </p>
+
+  <h2>Your recent votes</h2>
+  {% if votes %}
+    <table>
+      <thead>
+        <tr><th>Poll</th><th>Type</th><th>Choice</th><th>Status</th><th>When</th></tr>
+      </thead>
+      <tbody>
+        {% for v in votes %}
+          <tr>
+            <td><a href="{{ url_for('polls.view_poll', poll_id=v.poll_id) }}">{{ v.title }}</a></td>
+            <td>{{ v.poll_type }}</td>
+            <td>{{ v.label }}</td>
+            <td><span class="pill {{ v.status }}">{{ v.status }}</span></td>
+            <td class="meta">{{ v.created_at }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No votes yet. Head to the <a href="{{ url_for('polls.index') }}">polls</a>.</p>
+  {% endif %}
+{% endblock %}

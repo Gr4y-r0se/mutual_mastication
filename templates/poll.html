@@ -1,0 +1,243 @@
+{% extends "base_mobile.html" if is_mobile else "base.html" %}
+{% block title %}{{ poll.title }} · The Meat Ensemble{% endblock %}
+
+{% block content %}
+  <p><a href="{{ url_for('polls.index') }}">← back to all polls</a></p>
+
+  <h1>{{ poll.title }}</h1>
+  <p class="meta">
+    <span class="pill {{ poll.status }}">{{ poll.status }}</span>
+    <span class="pill">{{ poll.poll_type }}</span>
+    <span class="pill">
+      {{ 'pick one' if poll.vote_mode == 'single' else 'pick any' }}
+    </span>
+    · created by {{ poll.creator }} on {{ poll.created_at }}
+    · {{ total_voters }} voter{{ '' if total_voters == 1 else 's' }}
+  </p>
+  {% if poll.description %}
+    <p>{{ poll.description }}</p>
+  {% endif %}
+
+  {# ── Date poll — calendar view ─────────────────────────────── #}
+  {% if poll.poll_type == 'date' and calendar_data %}
+
+    {% if poll.status == 'open' %}
+      <form method="post" action="{{ url_for('polls.vote', poll_id=poll.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <p class="meta">
+          {% if poll.vote_mode == 'single' %}
+            Click a date to select it. Submitting again replaces your choice.
+            Click your current selection to deselect.
+          {% else %}
+            Click any dates that work for you. Submitting replaces your full previous selection.
+          {% endif %}
+        </p>
+
+        <div class="cal-wrapper">
+          {% for month in calendar_data %}
+            <div class="cal-month-block">
+              <h3>{{ month.month_name }} {{ month.year }}</h3>
+              <table class="cal-table">
+                <thead>
+                  <tr>
+                    <th>Mon</th><th>Tue</th><th>Wed</th>
+                    <th>Thu</th><th>Fri</th><th>Sat</th><th>Sun</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for week in month.weeks %}
+                    <tr>
+                      {% for cell in week %}
+                        {% if cell is none %}
+                          <td class="cal-cell cal-empty"></td>
+                        {% elif cell.option %}
+                          <td class="cal-cell cal-opt{% if cell.option.voted %} cal-voted{% endif %}"
+                              id="cell-{{ cell.option.id }}"
+                              onclick="toggleVote({{ cell.option.id }}, {{ 1 if poll.vote_mode == 'single' else 0 }})">
+                            {% if poll.vote_mode == 'single' %}
+                              <input type="radio" name="option_id"
+                                     id="opt-{{ cell.option.id }}"
+                                     value="{{ cell.option.id }}"
+                                     {% if cell.option.voted %}checked{% endif %}>
+                            {% else %}
+                              <input type="checkbox" name="option_ids"
+                                     id="opt-{{ cell.option.id }}"
+                                     value="{{ cell.option.id }}"
+                                     {% if cell.option.voted %}checked{% endif %}>
+                            {% endif %}
+                            <span class="cal-day-num">{{ cell.day }}</span>
+                            {% if cell.option.vote_count > 0 %}
+                              <span class="cal-vote-count"
+                                    title="{{ cell.option.voters | join(', ') }}">
+                                {{ cell.option.vote_count }}
+                                {{ 'vote' if cell.option.vote_count == 1 else 'votes' }}
+                              </span>
+                            {% endif %}
+                          </td>
+                        {% else %}
+                          <td class="cal-cell">
+                            <span class="cal-noopt">{{ cell.day }}</span>
+                          </td>
+                        {% endif %}
+                      {% endfor %}
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% endfor %}
+        </div>
+
+        <p>
+          <button type="submit">Submit vote</button>
+        </p>
+      </form>
+
+    {% else %}
+      {# Closed — read-only calendar #}
+      <p class="meta">This poll is closed. Final results:</p>
+      <div class="cal-wrapper">
+        {% for month in calendar_data %}
+          <div class="cal-month-block">
+            <h3>{{ month.month_name }} {{ month.year }}</h3>
+            <table class="cal-table">
+              <thead>
+                <tr>
+                  <th>Mon</th><th>Tue</th><th>Wed</th>
+                  <th>Thu</th><th>Fri</th><th>Sat</th><th>Sun</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for week in month.weeks %}
+                  <tr>
+                    {% for cell in week %}
+                      {% if cell is none %}
+                        <td class="cal-cell cal-empty"></td>
+                      {% elif cell.option %}
+                        <td class="cal-cell cal-opt" style="cursor:default;">
+                          <span class="cal-day-num">{{ cell.day }}</span>
+                          {% if cell.option.vote_count > 0 %}
+                            <span class="cal-vote-count"
+                                  title="{{ cell.option.voters | join(', ') }}">
+                              {{ cell.option.vote_count }}
+                              {{ 'vote' if cell.option.vote_count == 1 else 'votes' }}
+                            </span>
+                          {% endif %}
+                        </td>
+                      {% else %}
+                        <td class="cal-cell">
+                          <span class="cal-noopt">{{ cell.day }}</span>
+                        </td>
+                      {% endif %}
+                    {% endfor %}
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+  {# ── Restaurant / list view ────────────────────────────────── #}
+  {% else %}
+    {% set max_count = options | map(attribute='vote_count') | max | default(0) %}
+
+    {% if poll.status == 'open' %}
+      <form method="post" action="{{ url_for('polls.vote', poll_id=poll.id) }}" class="card">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <p class="meta">
+          {% if poll.vote_mode == 'single' %}
+            Pick one option. Submitting again replaces your previous choice.
+            Submit with nothing selected to clear it.
+          {% else %}
+            Tick every option that works for you. Submitting replaces your full previous selection.
+          {% endif %}
+        </p>
+        {% for opt in options %}
+          <label class="option-row" style="cursor: pointer;">
+            {% if poll.vote_mode == 'single' %}
+              <input type="radio" name="option_id" value="{{ opt.id }}"
+                     {% if opt.id in my_votes %}checked{% endif %}>
+            {% else %}
+              <input type="checkbox" name="option_ids" value="{{ opt.id }}"
+                     {% if opt.id in my_votes %}checked{% endif %}>
+            {% endif %}
+            <span style="min-width: 9rem;">{{ opt.label }}</span>
+            <span class="bar" aria-hidden="true">
+              <span style="width: {{ (opt.vote_count / max_count * 100) if max_count else 0 }}%;"></span>
+            </span>
+            <span class="meta">{{ opt.vote_count }}</span>
+          </label>
+        {% endfor %}
+        <p>
+          <button type="submit">Submit vote</button>
+        </p>
+      </form>
+    {% else %}
+      <div class="card">
+        <p class="meta">This poll is closed. Final results:</p>
+        {% for opt in options %}
+          <div class="option-row">
+            <span style="min-width: 9rem;">{{ opt.label }}</span>
+            <span class="bar" aria-hidden="true">
+              <span style="width: {{ (opt.vote_count / max_count * 100) if max_count else 0 }}%;"></span>
+            </span>
+            <span class="meta">{{ opt.vote_count }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endif %}
+
+  {% if current_user.is_admin %}
+    <div class="card">
+      <h3>Admin actions</h3>
+      <div class="row-actions">
+        {% if poll.status == 'open' %}
+          <form class="inline-form" method="post"
+                action="{{ url_for('admin.close_poll', poll_id=poll.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit">Close poll</button>
+          </form>
+        {% else %}
+          <form class="inline-form" method="post"
+                action="{{ url_for('admin.reopen_poll', poll_id=poll.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="secondary">Reopen poll</button>
+          </form>
+        {% endif %}
+        <form class="inline-form" method="post"
+              action="{{ url_for('admin.delete_poll', poll_id=poll.id) }}"
+              onsubmit="return confirm('Delete this poll and all its votes?');">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="secondary">Delete poll</button>
+        </form>
+      </div>
+    </div>
+  {% endif %}
+
+  <script>
+    function toggleVote(optionId, isSingle) {
+      const input = document.getElementById('opt-' + optionId);
+      const cell  = document.getElementById('cell-' + optionId);
+      if (!input || !cell) return;
+
+      if (isSingle) {
+        const wasChecked = input.checked;
+        document.querySelectorAll('input[type=radio][name=option_id]').forEach(function(r) {
+          r.checked = false;
+          var c = document.getElementById('cell-' + r.value);
+          if (c) c.classList.remove('cal-voted');
+        });
+        if (!wasChecked) {
+          input.checked = true;
+          cell.classList.add('cal-voted');
+        }
+      } else {
+        input.checked = !input.checked;
+        cell.classList.toggle('cal-voted', input.checked);
+      }
+    }
+  </script>
+{% endblock %}

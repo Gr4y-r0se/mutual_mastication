@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Restaurant approvals · The Meat Ensemble{% endblock %}
+
+{% block content %}
+  <p><a href="{{ url_for('admin.dashboard') }}">← back to admin</a></p>
+
+  <h1>Restaurant approvals</h1>
+
+  <h2>Pending review</h2>
+  {% if pending %}
+    {% for r in pending %}
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem;">
+          <div>
+            <strong>{{ r.name }}</strong>
+            {% if r.cuisine %}<span class="pill">{{ r.cuisine }}</span>{% endif %}
+            <p class="meta" style="margin: 0.2rem 0 0;">
+              Suggested by {{ r.suggested_by }} on {{ r.created_at }}
+            </p>
+            {% if r.address %}<p class="meta" style="margin: 0.2rem 0 0;">📍 {{ r.address }}</p>{% endif %}
+            {% if r.description %}<p style="margin: 0.4rem 0 0;">{{ r.description }}</p>{% endif %}
+          </div>
+          <div class="row-actions">
+            <form class="inline-form" method="post"
+                  action="{{ url_for('admin.approve_restaurant', restaurant_id=r.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit">Approve</button>
+            </form>
+            <form class="inline-form" method="post"
+                  action="{{ url_for('admin.reject_restaurant', restaurant_id=r.id) }}"
+                  onsubmit="return confirm({{ ('Reject ' ~ r.name ~ '?') | tojson }});">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="secondary">Reject</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <p class="meta">No pending suggestions.</p>
+  {% endif %}
+
+  <h2 style="margin-top: 2rem;">Approved restaurants</h2>
+  {% if approved %}
+    <table>
+      <thead>
+        <tr><th>Name</th><th>Cuisine</th><th>Address</th><th>Suggested by</th></tr>
+      </thead>
+      <tbody>
+        {% for r in approved %}
+          <tr>
+            <td>{{ r.name }}</td>
+            <td class="meta">{{ r.cuisine or '—' }}</td>
+            <td class="meta">{{ r.address or '—' }}</td>
+            <td class="meta">{{ r.suggested_by }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="meta">No approved restaurants yet.</p>
+  {% endif %}
+{% endblock %}

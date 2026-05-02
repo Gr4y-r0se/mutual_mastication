@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% block title %}New poll · The Meat Ensemble{% endblock %}
+
+{% block content %}
+  <p><a href="{{ url_for('admin.dashboard') }}">← back to admin</a></p>
+
+  <h1>Create a new poll</h1>
+  <form method="post" action="{{ url_for('admin.new_poll') }}" class="stack" style="max-width: 600px;" id="poll-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <label>
+      Title
+      <input type="text" name="title" required maxlength="200"
+             value="{{ title or '' }}"
+             placeholder="e.g. November dinner — which Saturday?">
+    </label>
+
+    <label>
+      Description (optional)
+      <textarea name="description" maxlength="1000"
+                placeholder="Any context the group should know.">{{ description or '' }}</textarea>
+    </label>
+
+    <label>
+      Poll type
+      <select name="poll_type" id="poll_type" required onchange="onTypeChange()">
+        <option value="date"       {% if poll_type == 'date' or not poll_type %}selected{% endif %}>Date</option>
+        <option value="restaurant" {% if poll_type == 'restaurant' %}selected{% endif %}>Restaurant</option>
+      </select>
+    </label>
+
+    <label>
+      Vote mode
+      <select name="vote_mode" id="vote_mode" required>
+        <option value="approval" {% if vote_mode == 'approval' or not vote_mode %}selected{% endif %}>
+          Approval — members tick every option that works
+        </option>
+        <option value="single" {% if vote_mode == 'single' %}selected{% endif %}>
+          Single choice — one favourite
+        </option>
+      </select>
+      <small class="meta">Approval is recommended for dates; single choice for restaurants.</small>
+    </label>
+
+    {# ── Date picker ─────────────────────────────────────────── #}
+    <div id="date-picker">
+      <div style="font-size: 0.95rem; margin-bottom: 0.4rem;">
+        Select dates <small class="meta">(click to toggle; navigate months with the arrows)</small>
+      </div>
+
+      <div class="cal-picker-nav">
+        <button type="button" onclick="calPrev()">←</button>
+        <strong id="cal-month-label"></strong>
+        <button type="button" onclick="calNext()">→</button>
+      </div>
+
+      <table class="cal-table" id="cal-picker-table">
+        <thead>
+          <tr><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th><th>Sun</th></tr>
+        </thead>
+        <tbody id="cal-picker-body"></tbody>
+      </table>
+
+      <div class="cal-selected-summary" id="cal-summary">No dates selected.</div>
+      {# Hidden textarea is the actual form field — populated by JS #}
+      <textarea name="options" id="options" style="display:none;" aria-hidden="true"></textarea>
+    </div>
+
+    {# ── Restaurant picker ───────────────────────────────────── #}
+    <div id="restaurant-picker" style="display:none;">
+      {% if approved_restaurants %}
+        <div style="font-size: 0.95rem; margin-bottom: 0.5rem;">
+          Select restaurants to include in this poll:
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+          {% for r in approved_restaurants %}
+            <label style="flex-direction: row; align-items: center; gap: 0.6rem; cursor: pointer;">
+              <input type="checkbox" name="restaurant_ids" value="{{ r.id }}">
+              <span>{{ r.name }}{% if r.cuisine %} <span class="meta">({{ r.cuisine }})</span>{% endif %}</span>
+            </label>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="meta">
+          No approved restaurants yet.
+          <a href="{{ url_for('admin.restaurants') }}">Review suggestions</a> first,
+          or have members <a href="{{ url_for('restaurants.list_restaurants') }}">suggest some</a>.
+        </p>
+      {% endif %}
+    </div>
+
+    <div>
+      <button type="submit">Create poll</button>
+      <a class="button secondary" href="{{ url_for('admin.dashboard') }}">Cancel</a>
+    </div>
+  </form>
+
+  <script>
+    const MONTH_NAMES = [
+      'January','February','March','April','May','June',
+      'July','August','September','October','November','December'
+    ];
+
+    let selectedDates = new Set();
+    let viewYear  = new Date().getFullYear();
+    let viewMonth = new Date().getMonth(); // 0-based
+
+    function daysInMonth(y, m) {
+      return new Date(y, m + 1, 0).getDate();
+    }
+
+    // Returns Monday-based day-of-week index for the 1st of given month (0=Mon, 6=Sun).
+    function firstWeekday(y, m) {
+      return (new Date(y, m, 1).getDay() + 6) % 7;
+    }
+
+    function fmtDate(y, m, d) {
+      return y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+    }
+
+    function renderCal() {
+      document.getElementById('cal-month-label').textContent =
+        MONTH_NAMES[viewMonth] + ' ' + viewYear;
+
+      const tbody = document.getElementById('cal-picker-body');
+      const first = firstWeekday(viewYear, viewMonth);
+      const total = daysInMonth(viewYear, viewMonth);
+      const today = new Date();
+
+      let html = '';
+      let day = 1;
+      for (let week = 0; week < 6; week++) {
+        if (day > total) break;
+        html += '<tr>';
+        for (let wd = 0; wd < 7; wd++) {
+          if (week === 0 && wd < first) {
+            html += '<td class="cal-cell cal-empty"></td>';
+          } else if (day > total) {
+            html += '<td class="cal-cell cal-empty"></td>';
+          } else {
+            const ds = fmtDate(viewYear, viewMonth, day);
+            const sel = selectedDates.has(ds);
+            const isPast = new Date(viewYear, viewMonth, day) < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            html += '<td class="cal-picker-cell'
+              + (sel ? ' cal-picker-selected' : '')
+              + (isPast ? ' cal-picker-past' : '')
+              + '" onclick="toggleDate(\'' + ds + '\')">'
+              + day + '</td>';
+            day++;
+          }
+        }
+        html += '</tr>';
+      }
+      tbody.innerHTML = html;
+
+      const sorted = Array.from(selectedDates).sort();
+      const summary = document.getElementById('cal-summary');
+      if (sorted.length === 0) {
+        summary.textContent = 'No dates selected.';
+      } else {
+        summary.textContent = sorted.length + ' date(s) selected: ' + sorted.join(', ');
+      }
+      document.getElementById('options').value = sorted.join('\n');
+    }
+
+    function toggleDate(ds) {
+      if (selectedDates.has(ds)) {
+        selectedDates.delete(ds);
+      } else {
+        selectedDates.add(ds);
+      }
+      renderCal();
+    }
+
+    function calPrev() {
+      if (viewMonth === 0) { viewMonth = 11; viewYear--; } else viewMonth--;
+      renderCal();
+    }
+
+    function calNext() {
+      if (viewMonth === 11) { viewMonth = 0; viewYear++; } else viewMonth++;
+      renderCal();
+    }
+
+    function onTypeChange() {
+      const t = document.getElementById('poll_type').value;
+      document.getElementById('date-picker').style.display       = t === 'date'       ? 'block' : 'none';
+      document.getElementById('restaurant-picker').style.display = t === 'restaurant' ? 'block' : 'none';
+      // Sync vote_mode recommendation
+      const vm = document.getElementById('vote_mode');
+      if (t === 'date' && vm.value === 'single')    vm.value = 'approval';
+      if (t === 'restaurant' && vm.value === 'approval') vm.value = 'single';
+    }
+
+    // Initialise on load
+    document.addEventListener('DOMContentLoaded', function() {
+      renderCal();
+      onTypeChange();
+    });
+  </script>
+{% endblock %}

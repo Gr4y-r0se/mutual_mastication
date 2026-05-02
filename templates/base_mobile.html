@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>{% block title %}The Meat Ensemble{% endblock %}</title>
+  <style>
+    :root {
+      --bg: #faf6f1;
+      --ink: #2a1a14;
+      --muted: #6b5a52;
+      --accent: #8a1d1d;
+      --accent-dark: #5e1212;
+      --line: #e2d5c8;
+      --ok: #1d6b3a;
+      --err: #8a1d1d;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.6;
+      font-size: 16px;
+    }
+
+    /* ── Header & hamburger ───────────���───────────────────────── */
+    /*
+     * Structure inside <header>:
+     *   <input#nav-toggle>   ← hidden checkbox (toggle state)
+     *   <div.header-bar>     ← brand + burger label (adjacent sibling of input)
+     *   <nav>                ← subsequent sibling — shown/hidden via :checked
+     *
+     * CSS sibling selectors require all three to be siblings, so they all
+     * live as direct children of <header>.
+     */
+    header { background: var(--ink); color: var(--bg); }
+
+    #nav-toggle { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
+
+    .header-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.85rem 1rem;
+    }
+    .brand { color: var(--bg); text-decoration: none; font-size: 1.2rem; font-weight: bold; }
+
+    .burger {
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 5px;
+      padding: 6px;
+      min-width: 36px;
+      min-height: 36px;
+    }
+    .burger span {
+      display: block;
+      width: 22px;
+      height: 2px;
+      background: var(--bg);
+      border-radius: 2px;
+      transition: transform 0.2s, opacity 0.2s;
+    }
+    /* Animate to × when open */
+    #nav-toggle:checked + .header-bar .burger span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    #nav-toggle:checked + .header-bar .burger span:nth-child(2) { opacity: 0; }
+    #nav-toggle:checked + .header-bar .burger span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    nav { display: none; flex-direction: column; border-top: 1px solid rgba(255,255,255,0.12); }
+    #nav-toggle:checked ~ nav { display: flex; }
+
+    .nav-item {
+      display: block;
+      color: var(--bg);
+      text-decoration: none;
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      font-size: 1rem;
+    }
+    .nav-greeting { color: rgba(255,255,255,0.5); font-size: 0.85rem; padding: 0.6rem 1rem; }
+    .nav-form { margin: 0; padding: 0; }
+    .nav-logout {
+      display: block; width: 100%;
+      background: none; border: none;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      color: var(--bg); font: inherit; font-size: 1rem;
+      text-align: left; padding: 0.85rem 1rem; cursor: pointer;
+    }
+
+    /* ── Layout ─────────────���─────────────────────────────────── */
+    main { padding: 1.25rem 1rem 4rem; }
+    h1, h2, h3 { color: var(--accent-dark); margin-top: 0; }
+    h1 { font-size: 1.5rem; }
+    h2 { font-size: 1.2rem; }
+    a { color: var(--accent); }
+
+    /* ── Flashes ───────────────────────────────────────────────�� */
+    .flash { padding: 0.85rem 1rem; border-radius: 8px; margin-bottom: 1rem; border: 1px solid var(--line); }
+    .flash-success { background: #eaf3ec; border-color: #b8d6bf; color: var(--ok); }
+    .flash-error   { background: #f7e8e8; border-color: #e0b6b6; color: var(--err); }
+
+    /* ── Forms ────────────────────────────────────────────────── */
+    form.stack { display: flex; flex-direction: column; gap: 1rem; max-width: 100%; }
+    label { display: flex; flex-direction: column; gap: 0.3rem; font-size: 1rem; }
+    input[type=text], input[type=email], input[type=password],
+    textarea, select {
+      font: inherit;
+      font-size: 16px; /* Prevents iOS zoom on focus */
+      padding: 0.75rem 0.8rem;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white; color: var(--ink); width: 100%;
+      -webkit-appearance: none;
+    }
+    textarea { min-height: 7rem; resize: vertical; }
+
+    /* ── Buttons ──────────────────────────────────────────────── */
+    button, .button {
+      font: inherit; font-size: 1rem;
+      padding: 0.8rem 1.25rem;
+      border-radius: 8px; border: 1px solid var(--accent);
+      background: var(--accent); color: white;
+      cursor: pointer; text-decoration: none; display: inline-block;
+      min-height: 48px; touch-action: manipulation;
+    }
+    button:active, .button:active { background: var(--accent-dark); }
+    button.secondary, .button.secondary { background: transparent; color: var(--accent); }
+    button.secondary:active, .button.secondary:active { background: var(--accent); color: white; }
+
+    /* ── Cards ─────────��───────────────────────────────���──────── */
+    .card { background: white; border: 1px solid var(--line); border-radius: 10px; padding: 1rem; margin-bottom: 0.85rem; }
+    .meta { color: var(--muted); font-size: 0.85rem; }
+    .pill {
+      display: inline-block; font-size: 0.7rem;
+      padding: 0.15rem 0.5rem; border-radius: 999px;
+      background: var(--line); color: var(--ink);
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .pill.open     { background: #d8ebdc; color: var(--ok); }
+    .pill.closed   { background: #ebd8d8; color: var(--err); }
+    .pill.pending  { background: #fdf3d8; color: #7a5a00; }
+    .pill.approved { background: #d8ebdc; color: var(--ok); }
+    .pill.rejected { background: #ebd8d8; color: var(--err); }
+
+    /* ── Tables ────────���──────────────────────────────────────── */
+    /* Data tables are wrapped in .tbl-scroll by JS at page load */
+    .tbl-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 1rem; }
+    table { width: 100%; border-collapse: collapse; min-width: 360px; }
+    th, td { text-align: left; padding: 0.55rem 0.5rem; border-bottom: 1px solid var(--line); font-size: 0.88rem; }
+    th { background: #f1eadd; white-space: nowrap; }
+
+    /* ── Poll option rows ─────────────────────────────────────── */
+    .option-row { display: flex; align-items: center; gap: 0.6rem; padding: 0.7rem 0; min-height: 48px; }
+    .bar { flex: 1; height: 0.6rem; background: var(--line); border-radius: 3px; overflow: hidden; }
+    .bar > span { display: block; height: 100%; background: var(--accent); }
+
+    /* ── Calendar ──────��──────────────────────────────────────��─ */
+    .cal-wrapper { margin: 1rem 0; }
+    .cal-month-block { margin-bottom: 1.5rem; }
+    .cal-month-block h3 { font-size: 1rem; margin-bottom: 0.4rem; }
+    .cal-table {
+      width: 100%; border-collapse: separate; border-spacing: 2px;
+      table-layout: fixed; min-width: unset; /* override data-table min-width */
+    }
+    .cal-table th { text-align: center; padding: 0.2rem 0; font-size: 0.65rem; color: var(--muted); font-weight: normal; white-space: nowrap; }
+    .cal-cell { text-align: center; padding: 0.3rem 0.1rem; border-radius: 6px; vertical-align: top; min-height: 48px; }
+    .cal-cell.cal-empty { background: transparent; }
+    .cal-cell.cal-opt { background: white; border: 1px solid var(--line); cursor: pointer; }
+    .cal-cell.cal-voted { background: var(--accent); border-color: var(--accent); color: white; }
+    .cal-cell input[type=checkbox], .cal-cell input[type=radio] { display: none; }
+    .cal-day-num { display: block; font-size: 0.85rem; font-weight: bold; }
+    .cal-vote-count { display: inline-block; font-size: 0.62rem; background: rgba(0,0,0,0.1); border-radius: 999px; padding: 0 0.25rem; margin-top: 0.1rem; }
+    .cal-voted .cal-vote-count { background: rgba(255,255,255,0.25); }
+    .cal-noopt { color: var(--muted); font-size: 0.8rem; display: block; }
+
+    /* ── Misc ───────────────��─────────────────────────────────── */
+    .inline-form { display: inline; }
+    .row-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    footer { text-align: center; color: var(--muted); font-size: 0.8rem; padding: 1.5rem 1rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <input type="checkbox" id="nav-toggle" aria-hidden="true">
+    <div class="header-bar">
+      <a href="{{ url_for('polls.index') }}" class="brand">🥩 Meat Ensemble</a>
+      <label for="nav-toggle" class="burger" aria-label="Open navigation menu">
+        <span></span><span></span><span></span>
+      </label>
+    </div>
+    <nav aria-label="Site navigation">
+      {% if current_user %}
+        <span class="nav-greeting">Hello, {{ current_user.username }}</span>
+        <a href="{{ url_for('polls.index') }}" class="nav-item">Polls</a>
+        <a href="{{ url_for('restaurants.list_restaurants') }}" class="nav-item">Restaurants</a>
+        <a href="{{ url_for('auth.profile') }}" class="nav-item">Profile</a>
+        <form method="post" action="{{ url_for('auth.logout') }}" class="nav-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="nav-logout">Log out</button>
+        </form>
+      {% else %}
+        <a href="{{ url_for('auth.login') }}" class="nav-item">Log in</a>
+      {% endif %}
+    </nav>
+  </header>
+
+  <main>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer>The Meat Ensemble · A monthly steak club</footer>
+
+  <script>
+    // Wrap data tables in a scroll container (excludes cal-table which is self-sizing).
+    document.querySelectorAll('main table:not(.cal-table)').forEach(function(t) {
+      var w = document.createElement('div');
+      w.className = 'tbl-scroll';
+      t.parentNode.insertBefore(w, t);
+      w.appendChild(t);
+    });
+  </script>
+</body>
+</html>

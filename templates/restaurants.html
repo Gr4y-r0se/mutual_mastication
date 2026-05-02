@@ -1,0 +1,80 @@
+{% extends "base_mobile.html" if is_mobile else "base.html" %}
+{% block title %}Restaurants · The Meat Ensemble{% endblock %}
+
+{% block content %}
+  <h1>Restaurants</h1>
+  <p class="meta">
+    Suggest a restaurant for the group to consider. An admin will review it before it
+    can appear in a poll.
+  </p>
+
+  {# ── Suggestion form ──────────────────────────────────────── #}
+  <div class="card">
+    <h2 style="margin-bottom: 1rem;">Suggest a restaurant</h2>
+    <form method="post" action="{{ url_for('restaurants.suggest_restaurant') }}" class="stack" style="max-width: 500px;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <label>
+        Name <span class="meta">(required)</span>
+        <input type="text" name="name" required maxlength="200" placeholder="e.g. Hawksmoor">
+      </label>
+
+      <label>
+        Cuisine
+        <input type="text" name="cuisine" maxlength="100" placeholder="e.g. Steakhouse">
+      </label>
+
+      <label>
+        Address
+        <input type="text" name="address" maxlength="300" placeholder="e.g. 11 Langley St, London WC2H 9JG">
+      </label>
+
+      <label>
+        Notes (optional)
+        <textarea name="description" maxlength="500"
+                  placeholder="Why would the group enjoy this place?"></textarea>
+      </label>
+
+      <div>
+        <button type="submit">Submit suggestion</button>
+      </div>
+    </form>
+  </div>
+
+  {# ── Approved restaurants ─────────────────────────────────── #}
+  <h2 style="margin-top: 2rem;">Approved restaurants</h2>
+  {% if approved %}
+    <div>
+      {% for r in approved %}
+        <div class="card" style="margin-bottom: 0.75rem;">
+          <strong>{{ r.name }}</strong>
+          {% if r.cuisine %}<span class="pill">{{ r.cuisine }}</span>{% endif %}
+          {% if r.address %}<p class="meta" style="margin: 0.2rem 0 0;">📍 {{ r.address }}</p>{% endif %}
+          {% if r.description %}<p style="margin: 0.4rem 0 0; font-size: 0.9rem;">{{ r.description }}</p>{% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="meta">No approved restaurants yet. Be the first to suggest one!</p>
+  {% endif %}
+
+  {# ── User's own suggestions ───────────────────────────────── #}
+  {% if my_suggestions %}
+    <h2 style="margin-top: 2rem;">Your suggestions</h2>
+    <table>
+      <thead>
+        <tr><th>Name</th><th>Cuisine</th><th>Status</th><th>Submitted</th></tr>
+      </thead>
+      <tbody>
+        {% for s in my_suggestions %}
+          <tr>
+            <td>{{ s.name }}</td>
+            <td class="meta">{{ s.cuisine or '—' }}</td>
+            <td><span class="pill {{ s.status }}">{{ s.status }}</span></td>
+            <td class="meta">{{ s.created_at }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+{% endblock %}

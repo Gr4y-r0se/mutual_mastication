@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Add user · The Meat Ensemble{% endblock %}
+
+{% block content %}
+  <p><a href="{{ url_for('admin.dashboard') }}">← back to admin</a></p>
+
+  <h1>Add a new member</h1>
+  <p class="meta">
+    The new member will use these credentials to log in.
+    Share the password with them directly — there is no email delivery.
+  </p>
+  <form method="post" action="{{ url_for('admin.new_user') }}" class="stack">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <label>
+      Username (3-32 chars: letters, numbers, underscore)
+      <input type="text" name="username" required minlength="3" maxlength="32"
+             pattern="[A-Za-z0-9_]{3,32}"
+             autocomplete="off" value="{{ username or '' }}">
+    </label>
+
+    <label>
+      Email
+      <input type="email" name="email" required maxlength="254"
+             autocomplete="off" value="{{ email or '' }}">
+    </label>
+
+    <label>
+      Password (at least 10 characters)
+      <input type="text" name="password" required minlength="10" maxlength="256"
+             autocomplete="off"
+             placeholder="Choose something to share with the member">
+    </label>
+
+    <label style="flex-direction: row; align-items: center; gap: 0.6rem; cursor: pointer;">
+      <input type="checkbox" name="is_admin" value="1"
+             {% if is_admin %}checked{% endif %}>
+      Grant admin privileges
+    </label>
+
+    <div>
+      <button type="submit">Create user</button>
+      <a class="button secondary" href="{{ url_for('admin.dashboard') }}">Cancel</a>
+    </div>
+  </form>
+{% endblock %}

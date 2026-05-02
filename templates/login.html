@@ -1,0 +1,22 @@
+{% extends "base_mobile.html" if is_mobile else "base.html" %}
+{% block title %}Log in · The Meat Ensemble{% endblock %}
+
+{% block content %}
+  <h1>Log in</h1>
+  <form method="post" class="stack" action="{{ url_for('auth.login') }}" autocomplete="on">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>
+      Username
+      <input type="text" name="username" required maxlength="32"
+             autocomplete="username" value="{{ username or '' }}">
+    </label>
+    <label>
+      Password
+      <input type="password" name="password" required maxlength="256"
+             autocomplete="current-password">
+    </label>
+    <div>
+      <button type="submit">Log in</button>
+    </div>
+  </form>
+{% endblock %}

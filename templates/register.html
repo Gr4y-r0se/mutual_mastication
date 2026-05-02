@@ -1,0 +1,38 @@
+{% extends "base_mobile.html" if is_mobile else "base.html" %}
+{% block title %}Setup · The Meat Ensemble{% endblock %}
+
+{% block content %}
+  <h1>Create the first admin account</h1>
+  <p class="meta">
+    This page is only available when no accounts exist. Once you register, all subsequent
+    members must be added by an admin.
+  </p>
+  <form method="post" class="stack" action="{{ url_for('auth.register') }}" autocomplete="on">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>
+      Username (3-32 chars: letters, numbers, underscore)
+      <input type="text" name="username" required minlength="3" maxlength="32"
+             pattern="[A-Za-z0-9_]{3,32}"
+             autocomplete="username" value="{{ username or '' }}">
+    </label>
+    <label>
+      Email
+      <input type="email" name="email" required maxlength="254"
+             autocomplete="email" value="{{ email or '' }}">
+    </label>
+    <label>
+      Password (at least 10 characters)
+      <input type="password" name="password" required minlength="10" maxlength="256"
+             autocomplete="new-password">
+    </label>
+    <label>
+      Confirm password
+      <input type="password" name="confirm_password" required minlength="10" maxlength="256"
+             autocomplete="new-password">
+    </label>
+    <div>
+      <button type="submit">Create admin account</button>
+    </div>
+  </form>
+  <p class="meta">Already set up? <a href="{{ url_for('auth.login') }}">Log in.</a></p>
+{% endblock %}
