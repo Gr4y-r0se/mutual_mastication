@@ -11,10 +11,14 @@ from database import get_db
 def current_user():
     if "user_id" not in session:
         return None
-    row = get_db().execute(
-        "SELECT id, username, email, is_admin FROM users WHERE id = ?",
-        (session["user_id"],),
-    ).fetchone()
+    row = (
+        get_db()
+        .execute(
+            "SELECT id, username, email, is_admin FROM users WHERE id = ?",
+            (session["user_id"],),
+        )
+        .fetchone()
+    )
     if row is None:
         session.clear()
     return row
@@ -27,6 +31,7 @@ def login_required(view):
             flash("Please log in to continue.", "error")
             return redirect(url_for("auth.login", next=request.path))
         return view(*args, **kwargs)
+
     return wrapped
 
 
@@ -39,6 +44,7 @@ def admin_required(view):
         if not user["is_admin"]:
             abort(403)
         return view(*args, **kwargs)
+
     return wrapped
 
 

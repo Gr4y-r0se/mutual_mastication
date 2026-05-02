@@ -16,9 +16,11 @@ from database import get_db
 
 auth_bp = Blueprint("auth", __name__)
 
+
 @auth_bp.route("/ping", methods=["GET"])
 def ping():
-    return 'pong', 200, {'ContentType':'text/plain'} 
+    return "pong", 200, {"ContentType": "text/plain"}
+
 
 @auth_bp.route("/register", methods=["GET", "POST"])
 def register():
@@ -39,7 +41,9 @@ def register():
 
         errors = []
         if not USERNAME_RE.match(username):
-            errors.append("Username must be 3-32 characters: letters, numbers, underscores.")
+            errors.append(
+                "Username must be 3-32 characters: letters, numbers, underscores."
+            )
         if not EMAIL_RE.match(email) or len(email) > 254:
             errors.append("Please provide a valid email address.")
         if len(password) < MIN_PASSWORD_LENGTH or len(password) > 256:
@@ -58,7 +62,9 @@ def register():
             flash("Those credentials are not available.", "error")
             return render_template("register.html", username=username, email=email)
 
-        password_hash = generate_password_hash(password, method="pbkdf2:sha256", salt_length=16)
+        password_hash = generate_password_hash(
+            password, method="pbkdf2:sha256", salt_length=16
+        )
         db.execute(
             "INSERT INTO users (username, email, password_hash, is_admin) VALUES (?, ?, ?, 1)",
             (username, email, password_hash),
@@ -89,7 +95,10 @@ def login():
         now = _now_epoch()
 
         if user and user["locked_until"] and user["locked_until"] > now:
-            flash("Account temporarily locked due to failed attempts. Try again later.", "error")
+            flash(
+                "Account temporarily locked due to failed attempts. Try again later.",
+                "error",
+            )
             return render_template("login.html", username=username)
 
         if user:
@@ -149,8 +158,10 @@ def logout():
 @login_required
 def profile():
     user = current_user()
-    votes = get_db().execute(
-        """
+    votes = (
+        get_db()
+        .execute(
+            """
         SELECT p.id AS poll_id, p.title, p.poll_type,
                p.status, o.label, v.created_at
         FROM votes v
@@ -160,6 +171,8 @@ def profile():
         ORDER BY v.created_at DESC
         LIMIT 100
         """,
-        (user["id"],),
-    ).fetchall()
+            (user["id"],),
+        )
+        .fetchall()
+    )
     return render_template("profile.html", user=user, votes=votes)

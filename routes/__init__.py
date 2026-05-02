@@ -3,10 +3,19 @@ from .auth_routes import auth_bp
 from .poll_routes import poll_bp
 from .restaurant_routes import restaurant_bp
 
-_MOBILE_UA = frozenset([
-    "mobile", "android", "iphone", "ipad", "ipod",
-    "blackberry", "windows phone", "opera mini", "webos",
-])
+_MOBILE_UA = frozenset(
+    [
+        "mobile",
+        "android",
+        "iphone",
+        "ipad",
+        "ipod",
+        "blackberry",
+        "windows phone",
+        "opera mini",
+        "webos",
+    ]
+)
 
 
 def _is_mobile(user_agent: str) -> bool:
@@ -23,6 +32,7 @@ def register_blueprints(app) -> None:
     @app.context_processor
     def _inject_globals():
         from auth import current_user
+
         return {
             "current_user": current_user(),
             "is_mobile": _is_mobile(request.headers.get("User-Agent", "")),

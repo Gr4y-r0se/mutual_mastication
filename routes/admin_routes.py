@@ -24,7 +24,9 @@ def dashboard():
     pending_count = db.execute(
         "SELECT COUNT(*) FROM restaurants WHERE status = 'pending'"
     ).fetchone()[0]
-    return render_template("admin.html", users=users, polls=polls, pending_count=pending_count)
+    return render_template(
+        "admin.html", users=users, polls=polls, pending_count=pending_count
+    )
 
 
 @admin_bp.route("/admin/poll/new", methods=["GET", "POST"])
@@ -68,7 +70,9 @@ def new_poll():
                 options = []
         else:
             options_raw = request.form.get("options") or ""
-            options = [line.strip()[:200] for line in options_raw.splitlines() if line.strip()]
+            options = [
+                line.strip()[:200] for line in options_raw.splitlines() if line.strip()
+            ]
             seen: set = set()
             options = [o for o in options if not (o in seen or seen.add(o))]
 
@@ -96,12 +100,17 @@ def new_poll():
         )
         poll_id = cursor.lastrowid
         for label in options:
-            db.execute("INSERT INTO poll_options (poll_id, label) VALUES (?, ?)", (poll_id, label))
+            db.execute(
+                "INSERT INTO poll_options (poll_id, label) VALUES (?, ?)",
+                (poll_id, label),
+            )
         db.commit()
         flash("Poll created.", "success")
         return redirect(url_for("polls.view_poll", poll_id=poll_id))
 
-    return render_template("admin_new_poll.html", approved_restaurants=approved_restaurants)
+    return render_template(
+        "admin_new_poll.html", approved_restaurants=approved_restaurants
+    )
 
 
 @admin_bp.route("/admin/poll/<int:poll_id>/close", methods=["POST"])
@@ -109,10 +118,14 @@ def new_poll():
 def close_poll(poll_id):
     db = get_db()
     result = db.execute(
-        "UPDATE polls SET status = 'closed' WHERE id = ? AND status = 'open'", (poll_id,)
+        "UPDATE polls SET status = 'closed' WHERE id = ? AND status = 'open'",
+        (poll_id,),
     )
     db.commit()
-    flash("Poll closed." if result.rowcount else "Poll not found or already closed.", "success" if result.rowcount else "error")
+    flash(
+        "Poll closed." if result.rowcount else "Poll not found or already closed.",
+        "success" if result.rowcount else "error",
+    )
     return redirect(url_for("polls.view_poll", poll_id=poll_id))
 
 
@@ -121,10 +134,14 @@ def close_poll(poll_id):
 def reopen_poll(poll_id):
     db = get_db()
     result = db.execute(
-        "UPDATE polls SET status = 'open' WHERE id = ? AND status = 'closed'", (poll_id,)
+        "UPDATE polls SET status = 'open' WHERE id = ? AND status = 'closed'",
+        (poll_id,),
     )
     db.commit()
-    flash("Poll reopened." if result.rowcount else "Poll not found or already open.", "success" if result.rowcount else "error")
+    flash(
+        "Poll reopened." if result.rowcount else "Poll not found or already open.",
+        "success" if result.rowcount else "error",
+    )
     return redirect(url_for("polls.view_poll", poll_id=poll_id))
 
 
@@ -149,7 +166,9 @@ def new_user():
 
         errors = []
         if not USERNAME_RE.match(username):
-            errors.append("Username must be 3-32 characters: letters, numbers, underscores.")
+            errors.append(
+                "Username must be 3-32 characters: letters, numbers, underscores."
+            )
         if not EMAIL_RE.match(email) or len(email) > 254:
             errors.append("Please provide a valid email address.")
         if len(password) < MIN_PASSWORD_LENGTH or len(password) > 256:
@@ -158,16 +177,22 @@ def new_user():
         if errors:
             for e in errors:
                 flash(e, "error")
-            return render_template("admin_new_user.html", username=username, email=email, is_admin=is_admin)
+            return render_template(
+                "admin_new_user.html", username=username, email=email, is_admin=is_admin
+            )
 
         db = get_db()
         if db.execute(
             "SELECT 1 FROM users WHERE username = ? OR email = ?", (username, email)
         ).fetchone():
             flash("Those credentials are not available.", "error")
-            return render_template("admin_new_user.html", username=username, email=email, is_admin=is_admin)
+            return render_template(
+                "admin_new_user.html", username=username, email=email, is_admin=is_admin
+            )
 
-        password_hash = generate_password_hash(password, method="pbkdf2:sha256", salt_length=16)
+        password_hash = generate_password_hash(
+            password, method="pbkdf2:sha256", salt_length=16
+        )
         db.execute(
             "INSERT INTO users (username, email, password_hash, is_admin) VALUES (?, ?, ?, ?)",
             (username, email, password_hash, is_admin),
@@ -187,10 +212,15 @@ def toggle_admin(user_id):
         flash("You cannot change your own admin status.", "error")
         return redirect(url_for("admin.dashboard"))
     db = get_db()
-    target = db.execute("SELECT id, is_admin FROM users WHERE id = ?", (user_id,)).fetchone()
+    target = db.execute(
+        "SELECT id, is_admin FROM users WHERE id = ?", (user_id,)
+    ).fetchone()
     if target is None:
         abort(404)
-    db.execute("UPDATE users SET is_admin = ? WHERE id = ?", (0 if target["is_admin"] else 1, user_id))
+    db.execute(
+        "UPDATE users SET is_admin = ? WHERE id = ?",
+        (0 if target["is_admin"] else 1, user_id),
+    )
     db.commit()
     flash("User admin status updated.", "success")
     return redirect(url_for("admin.dashboard"))
@@ -201,7 +231,8 @@ def toggle_admin(user_id):
 def unlock_user(user_id):
     db = get_db()
     db.execute(
-        "UPDATE users SET failed_attempts = 0, locked_until = NULL WHERE id = ?", (user_id,)
+        "UPDATE users SET failed_attempts = 0, locked_until = NULL WHERE id = ?",
+        (user_id,),
     )
     db.commit()
     flash("User unlocked.", "success")
@@ -268,7 +299,12 @@ def approve_restaurant(restaurant_id):
         (restaurant_id,),
     )
     db.commit()
-    flash("Restaurant approved." if result.rowcount else "Not found or already processed.", "success" if result.rowcount else "error")
+    flash(
+        "Restaurant approved."
+        if result.rowcount
+        else "Not found or already processed.",
+        "success" if result.rowcount else "error",
+    )
     return redirect(url_for("admin.restaurants"))
 
 
@@ -281,5 +317,10 @@ def reject_restaurant(restaurant_id):
         (restaurant_id,),
     )
     db.commit()
-    flash("Restaurant rejected." if result.rowcount else "Not found or already processed.", "success" if result.rowcount else "error")
+    flash(
+        "Restaurant rejected."
+        if result.rowcount
+        else "Not found or already processed.",
+        "success" if result.rowcount else "error",
+    )
     return redirect(url_for("admin.restaurants"))

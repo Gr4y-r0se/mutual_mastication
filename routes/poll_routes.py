@@ -23,31 +23,37 @@ def _build_calendar_data(options, my_votes, voters_by_option):
         except (ValueError, TypeError):
             return None
         key = (d.year, d.month)
-        date_opts_by_month.setdefault(key, []).append({
-            "id": opt["id"],
-            "day": d.day,
-            "label": opt["label"],
-            "vote_count": opt["vote_count"],
-            "voted": opt["id"] in my_votes,
-            "voters": voters_by_option.get(opt["id"], []),
-        })
+        date_opts_by_month.setdefault(key, []).append(
+            {
+                "id": opt["id"],
+                "day": d.day,
+                "label": opt["label"],
+                "vote_count": opt["vote_count"],
+                "voted": opt["id"] in my_votes,
+                "voters": voters_by_option.get(opt["id"], []),
+            }
+        )
 
     months = []
-    for (year, month) in sorted(date_opts_by_month.keys()):
+    for year, month in sorted(date_opts_by_month.keys()):
         opts_by_day = {o["day"]: o for o in date_opts_by_month[(year, month)]}
         weeks = cal_module.monthcalendar(year, month)  # Monday-first weeks
-        months.append({
-            "year": year,
-            "month": month,
-            "month_name": cal_module.month_name[month],
-            "weeks": [
-                [
-                    {"day": day, "option": opts_by_day.get(day)} if day != 0 else None
-                    for day in week
-                ]
-                for week in weeks
-            ],
-        })
+        months.append(
+            {
+                "year": year,
+                "month": month,
+                "month_name": cal_module.month_name[month],
+                "weeks": [
+                    [
+                        {"day": day, "option": opts_by_day.get(day)}
+                        if day != 0
+                        else None
+                        for day in week
+                    ]
+                    for week in weeks
+                ],
+            }
+        )
     return months
 
 
@@ -173,7 +179,9 @@ def vote(poll_id):
         if len(valid_ids) != len(submitted):
             abort(400)
 
-    db.execute("DELETE FROM votes WHERE poll_id = ? AND user_id = ?", (poll_id, user["id"]))
+    db.execute(
+        "DELETE FROM votes WHERE poll_id = ? AND user_id = ?", (poll_id, user["id"])
+    )
     for oid in submitted:
         db.execute(
             "INSERT INTO votes (poll_id, option_id, user_id) VALUES (?, ?, ?)",

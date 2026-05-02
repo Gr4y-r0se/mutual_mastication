@@ -30,7 +30,9 @@ def list_restaurants():
         """,
         (current_user()["id"],),
     ).fetchall()
-    return render_template("restaurants.html", approved=approved, my_suggestions=my_suggestions)
+    return render_template(
+        "restaurants.html", approved=approved, my_suggestions=my_suggestions
+    )
 
 
 @restaurant_bp.route("/restaurants/suggest", methods=["POST"])
