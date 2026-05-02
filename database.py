@@ -70,6 +70,7 @@ def init_db() -> None:
             cuisine      TEXT NOT NULL DEFAULT '',
             description  TEXT NOT NULL DEFAULT '',
             address      TEXT NOT NULL DEFAULT '',
+            link         TEXT NOT NULL DEFAULT '',
             suggested_by INTEGER NOT NULL REFERENCES users(id),
             status       TEXT NOT NULL DEFAULT 'pending'
                              CHECK (status IN ('pending', 'approved', 'rejected')),
@@ -81,3 +82,8 @@ def init_db() -> None:
         """
     )
     db.commit()
+    try:
+        db.execute("ALTER TABLE restaurants ADD COLUMN link TEXT NOT NULL DEFAULT ''")
+        db.commit()
+    except sqlite3.OperationalError:
+        pass

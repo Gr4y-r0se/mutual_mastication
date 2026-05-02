@@ -2,16 +2,100 @@
 {% block title %}Restaurants · The Meat Ensemble{% endblock %}
 
 {% block content %}
+  <style>
+    .restaurant-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1rem;
+      margin: 1.25rem 0 2rem;
+    }
+    .restaurant-card {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      margin-bottom: 0;
+    }
+    .restaurant-card__header {
+      display: flex;
+      align-items: baseline;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
+    .restaurant-card__name {
+      margin: 0;
+      font-size: 1.1rem;
+      color: var(--accent-dark);
+    }
+    .restaurant-card__detail {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin: 0;
+    }
+    .restaurant-card__desc {
+      font-size: 0.92rem;
+      margin: 0;
+      line-height: 1.5;
+    }
+    .restaurant-card__link {
+      font-size: 0.88rem;
+    }
+    .restaurant-card__footer {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: auto;
+      padding-top: 0.5rem;
+      border-top: 1px solid var(--line);
+    }
+    .section-divider {
+      border: none;
+      border-top: 1px solid var(--line);
+      margin: 2rem 0;
+    }
+  </style>
+
   <h1>Restaurants</h1>
-  <p class="meta">
-    Suggest a restaurant for the group to consider. An admin will review it before it
-    can appear in a poll.
-  </p>
+
+  {# ── Approved restaurants ─────────────────────────────────── #}
+  {% if approved %}
+    <p class="meta">
+      {{ approved | length }} approved restaurant{{ '' if approved | length == 1 else 's' }}
+      in the group's rotation.
+    </p>
+    <div class="restaurant-grid">
+      {% for r in approved %}
+        <div class="card restaurant-card">
+          <div class="restaurant-card__header">
+            <h3 class="restaurant-card__name">{{ r.name }}</h3>
+            {% if r.cuisine %}<span class="pill">{{ r.cuisine }}</span>{% endif %}
+          </div>
+          {% if r.address %}
+            <p class="restaurant-card__detail">📍 {{ r.address }}</p>
+          {% endif %}
+          {% if r.description %}
+            <p class="restaurant-card__desc">{{ r.description }}</p>
+          {% endif %}
+          {% if r.link %}
+            <p class="restaurant-card__link">
+              <a href="{{ r.link }}" target="_blank" rel="noopener noreferrer">Visit website →</a>
+            </p>
+          {% endif %}
+          <p class="restaurant-card__footer">Suggested by {{ r.suggested_by }}</p>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="meta" style="margin: 1.5rem 0 2rem;">
+      No approved restaurants yet — be the first to suggest one below!
+    </p>
+  {% endif %}
+
+  <hr class="section-divider">
 
   {# ── Suggestion form ──────────────────────────────────────── #}
   <div class="card">
     <h2 style="margin-bottom: 1rem;">Suggest a restaurant</h2>
-    <form method="post" action="{{ url_for('restaurants.suggest_restaurant') }}" class="stack" style="max-width: 500px;">
+    <p class="meta">An admin will review your suggestion before it appears above.</p>
+    <form method="post" action="{{ url_for('restaurants.suggest_restaurant') }}" class="stack" style="max-width: 500px; margin-top: 1rem;">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
       <label>
@@ -30,7 +114,12 @@
       </label>
 
       <label>
-        Notes (optional)
+        Website link
+        <input type="url" name="link" maxlength="500" placeholder="https://hawksmoor.com">
+      </label>
+
+      <label>
+        Notes <span class="meta">(optional)</span>
         <textarea name="description" maxlength="500"
                   placeholder="Why would the group enjoy this place?"></textarea>
       </label>
@@ -40,23 +129,6 @@
       </div>
     </form>
   </div>
-
-  {# ── Approved restaurants ─────────────────────────────────── #}
-  <h2 style="margin-top: 2rem;">Approved restaurants</h2>
-  {% if approved %}
-    <div>
-      {% for r in approved %}
-        <div class="card" style="margin-bottom: 0.75rem;">
-          <strong>{{ r.name }}</strong>
-          {% if r.cuisine %}<span class="pill">{{ r.cuisine }}</span>{% endif %}
-          {% if r.address %}<p class="meta" style="margin: 0.2rem 0 0;">📍 {{ r.address }}</p>{% endif %}
-          {% if r.description %}<p style="margin: 0.4rem 0 0; font-size: 0.9rem;">{{ r.description }}</p>{% endif %}
-        </div>
-      {% endfor %}
-    </div>
-  {% else %}
-    <p class="meta">No approved restaurants yet. Be the first to suggest one!</p>
-  {% endif %}
 
   {# ── User's own suggestions ───────────────────────────────── #}
   {% if my_suggestions %}

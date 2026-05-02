@@ -11,15 +11,19 @@ catalogue.
   to mark the dates that work for them, and see how many others have picked each
   date at a glance
 - **Restaurant polls** — options are drawn from the admin-approved restaurant
-  catalogue; standard list view with vote bars
+  catalogue; displayed as large clickable cards with vote bars
 - Two voting modes per poll:
   - **Approval** — tick every option that works (recommended for dates)
   - **Single choice** — one favourite (recommended for restaurants)
+- Hovering over a date cell or a restaurant's vote count shows a tooltip of who has voted for it
 - Members can update their vote any time until the poll is closed
 - Admins can create, close, reopen, and delete polls
 
 ### Restaurant catalogue
-- Any logged-in member can suggest a restaurant (name, cuisine, address, notes)
+- The catalogue page leads with a card grid of all approved restaurants, each
+  showing name, cuisine, address, notes, and an optional website link
+- Any logged-in member can suggest a restaurant (name, cuisine, address, website
+  link, notes); the suggestion form sits below the approved list
 - Admins review suggestions and approve or reject them
 - Approved restaurants become selectable options when creating a restaurant poll
 
@@ -118,8 +122,9 @@ The config handles:
 - No password reset flow
 - No 2FA for admin accounts
 - No structured audit log of admin actions
-- Schema migrations are manual (`CREATE TABLE IF NOT EXISTS` handles new tables;
-  column additions require a migration script)
+- Schema migrations are handled inline: `CREATE TABLE IF NOT EXISTS` covers new
+  tables; column additions use `ALTER TABLE … ADD COLUMN` with a silent no-op if
+  the column already exists
 - SQLite is the only supported database
 
 ## File layout

@@ -14,7 +14,7 @@ def list_restaurants():
     db = get_db()
     approved = db.execute(
         """
-        SELECT r.name, r.cuisine, r.description, r.address,
+        SELECT r.name, r.cuisine, r.description, r.address, r.link,
                u.username AS suggested_by, r.created_at
         FROM restaurants r JOIN users u ON u.id = r.suggested_by
         WHERE r.status = 'approved'
@@ -40,6 +40,7 @@ def suggest_restaurant():
     cuisine = (request.form.get("cuisine") or "").strip()
     description = (request.form.get("description") or "").strip()
     address = (request.form.get("address") or "").strip()
+    link = (request.form.get("link") or "").strip()
 
     errors = []
     if not (1 <= len(name) <= 200):
@@ -50,6 +51,10 @@ def suggest_restaurant():
         errors.append("Description must be at most 500 characters.")
     if len(address) > 300:
         errors.append("Address must be at most 300 characters.")
+    if link and not (link.startswith("http://") or link.startswith("https://")):
+        errors.append("Link must start with http:// or https://")
+    if len(link) > 500:
+        errors.append("Link must be at most 500 characters.")
 
     for e in errors:
         flash(e, "error")
@@ -58,9 +63,9 @@ def suggest_restaurant():
 
     db = get_db()
     db.execute(
-        "INSERT INTO restaurants (name, cuisine, description, address, suggested_by) "
-        "VALUES (?, ?, ?, ?, ?)",
-        (name, cuisine, description, address, current_user()["id"]),
+        "INSERT INTO restaurants (name, cuisine, description, address, link, suggested_by) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (name, cuisine, description, address, link, current_user()["id"]),
     )
     db.commit()
     flash("Restaurant suggested! An admin will review it shortly.", "success")
