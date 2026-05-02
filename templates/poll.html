@@ -53,6 +53,7 @@
                         {% elif cell.option %}
                           <td class="cal-cell cal-opt{% if cell.option.voted %} cal-voted{% endif %}"
                               id="cell-{{ cell.option.id }}"
+                              {% if cell.option.voters %}data-voters="Voted by: {{ cell.option.voters | join(', ') }}"{% endif %}
                               onclick="toggleVote({{ cell.option.id }}, {{ 1 if poll.vote_mode == 'single' else 0 }})">
                             {% if poll.vote_mode == 'single' %}
                               <input type="radio" name="option_id"
@@ -67,8 +68,7 @@
                             {% endif %}
                             <span class="cal-day-num">{{ cell.day }}</span>
                             {% if cell.option.vote_count > 0 %}
-                              <span class="cal-vote-count"
-                                    title="{{ cell.option.voters | join(', ') }}">
+                              <span class="cal-vote-count">
                                 {{ cell.option.vote_count }}
                                 {{ 'vote' if cell.option.vote_count == 1 else 'votes' }}
                               </span>
@@ -114,11 +114,11 @@
                       {% if cell is none %}
                         <td class="cal-cell cal-empty"></td>
                       {% elif cell.option %}
-                        <td class="cal-cell cal-opt" style="cursor:default;">
+                        <td class="cal-cell cal-opt" style="cursor:default;"
+                            {% if cell.option.voters %}data-voters="Voted by: {{ cell.option.voters | join(', ') }}"{% endif %}>
                           <span class="cal-day-num">{{ cell.day }}</span>
                           {% if cell.option.vote_count > 0 %}
-                            <span class="cal-vote-count"
-                                  title="{{ cell.option.voters | join(', ') }}">
+                            <span class="cal-vote-count">
                               {{ cell.option.vote_count }}
                               {{ 'vote' if cell.option.vote_count == 1 else 'votes' }}
                             </span>
@@ -154,38 +154,56 @@
             Tick every option that works for you. Submitting replaces your full previous selection.
           {% endif %}
         </p>
-        {% for opt in options %}
-          <label class="option-row" style="cursor: pointer;">
-            {% if poll.vote_mode == 'single' %}
-              <input type="radio" name="option_id" value="{{ opt.id }}"
-                     {% if opt.id in my_votes %}checked{% endif %}>
-            {% else %}
-              <input type="checkbox" name="option_ids" value="{{ opt.id }}"
-                     {% if opt.id in my_votes %}checked{% endif %}>
-            {% endif %}
-            <span style="min-width: 9rem;">{{ opt.label }}</span>
-            <span class="bar" aria-hidden="true">
-              <span style="width: {{ (opt.vote_count / max_count * 100) if max_count else 0 }}%;"></span>
-            </span>
-            <span class="meta">{{ opt.vote_count }}</span>
-          </label>
-        {% endfor %}
+        <div class="vote-cards">
+          {% for opt in options %}
+            {% set voter_names = voters_by_option.get(opt.id, []) %}
+            <label class="vote-card{% if opt.id in my_votes %} vote-card--on{% endif %}">
+              {% if poll.vote_mode == 'single' %}
+                <input type="radio" name="option_id" value="{{ opt.id }}"
+                       {% if opt.id in my_votes %}checked{% endif %}>
+              {% else %}
+                <input type="checkbox" name="option_ids" value="{{ opt.id }}"
+                       {% if opt.id in my_votes %}checked{% endif %}>
+              {% endif %}
+              <div class="vote-card__header">
+                <span class="vote-card__indicator{% if poll.vote_mode != 'single' %} vote-card__indicator--square{% endif %}"></span>
+                <span class="vote-card__name">{{ opt.label }}</span>
+                <span class="vote-card__tally{% if voter_names %} has-voters{% endif %}"
+                      {% if voter_names %}data-voters="Voted by: {{ voter_names | join(', ') }}"{% endif %}>
+                  {{ opt.vote_count }} {{ 'vote' if opt.vote_count == 1 else 'votes' }}
+                </span>
+              </div>
+              <div class="bar" aria-hidden="true">
+                <span style="width:{{ (opt.vote_count / max_count * 100) if max_count else 0 }}%"></span>
+              </div>
+            </label>
+          {% endfor %}
+        </div>
         <p>
           <button type="submit">Submit vote</button>
         </p>
       </form>
+
     {% else %}
       <div class="card">
         <p class="meta">This poll is closed. Final results:</p>
-        {% for opt in options %}
-          <div class="option-row">
-            <span style="min-width: 9rem;">{{ opt.label }}</span>
-            <span class="bar" aria-hidden="true">
-              <span style="width: {{ (opt.vote_count / max_count * 100) if max_count else 0 }}%;"></span>
-            </span>
-            <span class="meta">{{ opt.vote_count }}</span>
-          </div>
-        {% endfor %}
+        <div class="vote-cards">
+          {% for opt in options %}
+            {% set voter_names = voters_by_option.get(opt.id, []) %}
+            <div class="vote-card{% if opt.vote_count == max_count and max_count > 0 %} vote-card--winner{% endif %}">
+              <div class="vote-card__header">
+                <span class="vote-card__name">{{ opt.label }}</span>
+                <span class="vote-card__tally{% if voter_names %} has-voters{% endif %}"
+                      {% if voter_names %}data-voters="Voted by: {{ voter_names | join(', ') }}"{% endif %}>
+                  {{ opt.vote_count }} {{ 'vote' if opt.vote_count == 1 else 'votes' }}
+                </span>
+              </div>
+              <div class="bar" aria-hidden="true">
+                <span style="width:{{ (opt.vote_count / max_count * 100) if max_count else 0 }}%"></span>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
       </div>
     {% endif %}
   {% endif %}
@@ -217,7 +235,10 @@
     </div>
   {% endif %}
 
+  <div id="voter-tooltip" class="voter-tooltip"></div>
+
   <script>
+    // Calendar date toggle
     function toggleVote(optionId, isSingle) {
       const input = document.getElementById('opt-' + optionId);
       const cell  = document.getElementById('cell-' + optionId);
@@ -239,5 +260,38 @@
         cell.classList.toggle('cal-voted', input.checked);
       }
     }
+
+    // Sync vote-card selected state on input change
+    document.querySelectorAll('.vote-card input').forEach(function(input) {
+      input.addEventListener('change', function() {
+        if (this.type === 'radio') {
+          document.querySelectorAll('.vote-card input[name="' + this.name + '"]').forEach(function(r) {
+            r.closest('.vote-card').classList.toggle('vote-card--on', r.checked);
+          });
+        } else {
+          this.closest('.vote-card').classList.toggle('vote-card--on', this.checked);
+        }
+      });
+    });
+
+    // Voter hover tooltip
+    (function() {
+      var tip = document.getElementById('voter-tooltip');
+      document.querySelectorAll('[data-voters]').forEach(function(el) {
+        el.addEventListener('mouseenter', function() {
+          var v = el.dataset.voters;
+          if (!v) return;
+          tip.textContent = v;
+          tip.classList.add('visible');
+        });
+        el.addEventListener('mousemove', function(e) {
+          tip.style.left = (e.clientX + 14) + 'px';
+          tip.style.top  = (e.clientY - 36) + 'px';
+        });
+        el.addEventListener('mouseleave', function() {
+          tip.classList.remove('visible');
+        });
+      });
+    })();
   </script>
 {% endblock %}

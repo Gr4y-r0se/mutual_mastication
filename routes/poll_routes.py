@@ -11,7 +11,7 @@ from database import get_db
 poll_bp = Blueprint("polls", __name__)
 
 
-def _build_calendar_data(options, my_votes, db, poll_id):
+def _build_calendar_data(options, my_votes, voters_by_option):
     """
     Parse ISO date options (YYYY-MM-DD) into per-month calendar structures.
     Returns a list of month dicts, or None if any option label isn't a valid date.
@@ -29,22 +29,8 @@ def _build_calendar_data(options, my_votes, db, poll_id):
             "label": opt["label"],
             "vote_count": opt["vote_count"],
             "voted": opt["id"] in my_votes,
+            "voters": voters_by_option.get(opt["id"], []),
         })
-
-    voters_by_option: dict = {}
-    for row in db.execute(
-        """
-        SELECT v.option_id, u.username
-        FROM votes v JOIN users u ON u.id = v.user_id
-        WHERE v.poll_id = ?
-        """,
-        (poll_id,),
-    ).fetchall():
-        voters_by_option.setdefault(row["option_id"], []).append(row["username"])
-
-    for opt_list in date_opts_by_month.values():
-        for o in opt_list:
-            o["voters"] = voters_by_option.get(o["id"], [])
 
     months = []
     for (year, month) in sorted(date_opts_by_month.keys()):
@@ -120,9 +106,20 @@ def view_poll(poll_id):
         (poll_id,),
     ).fetchone()[0]
 
+    voters_by_option: dict = {}
+    for row in db.execute(
+        """
+        SELECT v.option_id, u.username
+        FROM votes v JOIN users u ON u.id = v.user_id
+        WHERE v.poll_id = ?
+        """,
+        (poll_id,),
+    ).fetchall():
+        voters_by_option.setdefault(row["option_id"], []).append(row["username"])
+
     calendar_data = None
     if poll["poll_type"] == "date":
-        calendar_data = _build_calendar_data(options, my_votes, db, poll_id)
+        calendar_data = _build_calendar_data(options, my_votes, voters_by_option)
 
     return render_template(
         "poll.html",
@@ -131,6 +128,7 @@ def view_poll(poll_id):
         my_votes=my_votes,
         total_voters=total_voters,
         calendar_data=calendar_data,
+        voters_by_option=voters_by_option,
     )
 
 

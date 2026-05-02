@@ -4,7 +4,7 @@
 {% block content %}
   <h1>Upcoming gatherings</h1>
   <p class="meta">
-    Vote on when we meet and where we eat. Members vote, the admin opens and closes polls.
+    Vote on when we meet and where we eat.
   </p>
 
   {% if not current_user %}
@@ -12,8 +12,7 @@
       <a class="button" href="{{ url_for('auth.login') }}">Log in to vote</a>
     </p>
   {% endif %}
-
-  {% if polls %}
+  {% if polls and current_user %}
     {% for poll in polls %}
       <article class="card">
         <h2 style="margin-bottom: 0.25rem;">
@@ -35,9 +34,5 @@
         {% endif %}
       </article>
     {% endfor %}
-  {% else %}
-    <p>No polls yet.{% if current_user and current_user.is_admin %}
-      <a href="{{ url_for('admin.new_poll') }}">Create the first one.</a>
-    {% endif %}</p>
   {% endif %}
 {% endblock %}

@@ -16,6 +16,9 @@ from database import get_db
 
 auth_bp = Blueprint("auth", __name__)
 
+@auth_bp.route("/ping", methods=["GET"])
+def ping():
+    return 'pong', 200, {'ContentType':'text/plain'} 
 
 @auth_bp.route("/register", methods=["GET", "POST"])
 def register():
