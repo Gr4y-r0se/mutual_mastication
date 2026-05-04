@@ -1,3 +1,4 @@
+"""Blueprint registration, mobile detection, error handlers, and security headers."""
 from .admin_routes import admin_bp
 from .auth_routes import auth_bp
 from .poll_routes import poll_bp
@@ -19,11 +20,13 @@ _MOBILE_UA = frozenset(
 
 
 def _is_mobile(user_agent: str) -> bool:
+    """Return True if the User-Agent string matches any known mobile keyword."""
     ua = user_agent.lower()
     return any(kw in ua for kw in _MOBILE_UA)
 
 
 def register_blueprints(app) -> None:
+    """Register all blueprints and attach teardown/context-processor/error handlers."""
     from database import close_db
     from flask import request
 

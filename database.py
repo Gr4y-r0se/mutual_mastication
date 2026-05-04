@@ -1,3 +1,4 @@
+"""SQLite database helpers: per-request connection caching via Flask's g object."""
 from __future__ import annotations
 
 import sqlite3
@@ -8,6 +9,12 @@ from config import DATABASE
 
 
 def get_db() -> sqlite3.Connection:
+    """Return the per-request database connection, creating it on first call.
+
+    The connection is cached on Flask's ``g`` object and is closed automatically
+    at the end of the request via ``close_db``, which is registered as a
+    teardown handler in ``register_blueprints``.
+    """
     if "db" not in g:
         conn = sqlite3.connect(DATABASE)
         conn.row_factory = sqlite3.Row
@@ -17,12 +24,19 @@ def get_db() -> sqlite3.Connection:
 
 
 def close_db(_exc=None) -> None:
+    """Close the request-scoped database connection if one was opened."""
     db = g.pop("db", None)
     if db is not None:
         db.close()
 
 
 def init_db() -> None:
+    """Create all tables and indexes if they don't already exist.
+
+    Also runs non-destructive ``ALTER TABLE`` migrations for columns added after
+    the initial schema; duplicate-column errors are silently swallowed so this is
+    safe to call on an existing database.
+    """
     db = get_db()
     db.executescript(
         """

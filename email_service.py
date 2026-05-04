@@ -1,3 +1,4 @@
+"""AWS SES email delivery: HTML template builder and application-level send functions."""
 from __future__ import annotations
 
 import logging
@@ -28,6 +29,12 @@ def _all_emails(db) -> list[str]:
 # ── HTML email template ────────────────────────────────────────────────────────
 
 def _email_html(title: str, body_html: str, cta_text: str = "", cta_url: str = "") -> str:
+    """Build a full HTML email document in the club's brand style.
+
+    Renders a dark header, burgundy title band, white body, an optional CTA button,
+    and a footer disclaimer. Uses string concatenation rather than f-strings to avoid
+    conflicts with CSS curly braces.
+    """
     cta_block = ""
     if cta_text and cta_url:
         cta_block = (
@@ -101,6 +108,11 @@ def _email_html(title: str, body_html: str, cta_text: str = "", cta_url: str = "
 # ── Send helper ────────────────────────────────────────────────────────────────
 
 def _send(to: list[str], subject: str, text: str, html: str = "") -> bool:
+    """Send an email via SES with plain-text and optional HTML bodies.
+
+    Returns ``True`` on success, ``False`` if SES isn't configured (missing sender
+    or empty recipient list) or if SES raises an error.
+    """
     sender = _from_address()
     if not sender or not to:
         logger.warning("SES not configured or no recipients — skipping email")
@@ -126,6 +138,7 @@ def _send(to: list[str], subject: str, text: str, html: str = "") -> bool:
 # ── Email functions ────────────────────────────────────────────────────────────
 
 def send_poll_created(poll: dict, db) -> bool:
+    """Notify all members that a new poll has been opened."""
     url = f"{_app_url()}/poll/{poll['id']}"
     end = poll.get("end_date") or "no end date set"
     title = f"New poll: {poll['title']}"
@@ -162,6 +175,7 @@ def send_poll_created(poll: dict, db) -> bool:
 
 
 def send_polls_closing_soon(polls: list, db) -> bool:
+    """Notify all members that one or more polls close within the next 24 hours."""
     base = _app_url()
     subject = (
         f"Poll closing soon — {polls[0]['title']}"
@@ -210,6 +224,7 @@ def send_polls_closing_soon(polls: list, db) -> bool:
 
 
 def send_polls_closed(polls: list, db) -> bool:
+    """Notify all members that one or more polls have closed and results are available."""
     base = _app_url()
     subject = (
         f"Poll closed — {polls[0]['title']}"
@@ -257,6 +272,7 @@ def send_polls_closed(polls: list, db) -> bool:
 
 
 def send_password_reset(to_email: str, reset_url: str) -> bool:
+    """Send a password-reset link to the specified email address (expires in 1 hour)."""
     subject = "Reset your password — The Meat Ensemble"
     title = "Reset your password"
 

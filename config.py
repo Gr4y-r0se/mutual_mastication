@@ -1,3 +1,4 @@
+"""Application configuration: constants, compiled regexes, and secret-key loading."""
 from __future__ import annotations
 
 import os
@@ -22,6 +23,12 @@ DUMMY_PASSWORD_HASH = generate_password_hash(secrets.token_urlsafe(32))
 
 
 def _load_secret_key() -> str:
+    """Return the Flask secret key.
+
+    Priority: SECRET_KEY env var → .secret_key file → auto-generate and persist.
+    Auto-generated keys are written to .secret_key with mode 0o600 so they survive
+    process restarts without requiring manual configuration.
+    """
     key = os.environ.get("SECRET_KEY")
     if key:
         return key

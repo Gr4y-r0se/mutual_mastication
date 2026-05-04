@@ -1,3 +1,4 @@
+"""Authentication helpers: session-based current_user lookup and route decorators."""
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -9,6 +10,11 @@ from database import get_db
 
 
 def current_user():
+    """Return the logged-in user row, or ``None`` if the session is anonymous.
+
+    Clears the session if the stored ``user_id`` no longer exists in the database
+    (e.g. the account was deleted while the session was still active).
+    """
     if "user_id" not in session:
         return None
     row = (
@@ -25,6 +31,7 @@ def current_user():
 
 
 def login_required(view):
+    """Decorator: redirect unauthenticated requests to /login with a ``next`` param."""
     @wraps(view)
     def wrapped(*args, **kwargs):
         if current_user() is None:
@@ -36,6 +43,7 @@ def login_required(view):
 
 
 def admin_required(view):
+    """Decorator: redirect anonymous users to /login; abort 403 for non-admins."""
     @wraps(view)
     def wrapped(*args, **kwargs):
         user = current_user()
@@ -49,4 +57,5 @@ def admin_required(view):
 
 
 def _now_epoch() -> int:
+    """Return the current UTC time as a Unix timestamp integer."""
     return int(datetime.now(tz=timezone.utc).timestamp())

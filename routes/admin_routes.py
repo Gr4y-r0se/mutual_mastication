@@ -1,3 +1,4 @@
+"""Admin-only routes: dashboard, poll/user management, and restaurant moderation."""
 from __future__ import annotations
 
 from datetime import datetime

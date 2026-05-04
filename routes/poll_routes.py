@@ -1,3 +1,4 @@
+"""Poll viewing, voting, and calendar-rendering routes."""
 from __future__ import annotations
 
 import calendar as cal_module

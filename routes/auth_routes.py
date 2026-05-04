@@ -1,3 +1,4 @@
+"""Authentication routes: register, login, logout, profile, and password management."""
 from __future__ import annotations
 
 import secrets
