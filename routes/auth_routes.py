@@ -147,8 +147,7 @@ def login():
             next_url
             and next_url.startswith("/")
             and not next_url.startswith("//")
-            and "\\" not in next_url
-            and not any(banned in next_url for banned in [' ','\t','\n'])
+            and not any(banned in next_url for banned in [' ','\\','\t','\n'])
         ):
             return redirect(next_url)
         return redirect(url_for("polls.index"))
