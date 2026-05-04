@@ -1,6 +1,6 @@
 #!/bin/bash
 # Bootstrap script for meat-ensemble on Amazon Linux 2023 (ARM64 / Graviton2)
-# Rendered by Terraform templatefile — ${VAR} is Terraform, $VAR is shell.
+# Rendered by Terraform templatefile — $${VAR} is Terraform, $VAR is shell.
 set -euo pipefail
 exec > /var/log/user_data.log 2>&1
 

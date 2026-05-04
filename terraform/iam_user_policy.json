@@ -11,6 +11,7 @@
         "ec2:DescribeAvailabilityZones",
         "ec2:DescribeImages",
         "ec2:DescribeInstanceAttribute",
+        "ec2:DescribeInstanceCreditSpecifications",
         "ec2:DescribeInstanceStatus",
         "ec2:DescribeInstanceTypes",
         "ec2:DescribeInstances",

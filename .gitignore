@@ -54,3 +54,4 @@ terraform/terraform.tfvars
 terraform/terraform.tfstate
 terraform/terraform.tfstate.backup
 terraform/*.tfplan
+terraform/*.tf.plan
