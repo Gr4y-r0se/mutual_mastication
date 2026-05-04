@@ -23,6 +23,11 @@ secret_key = "KJSXHD789EWQ747893BNC423T684CB23789BC46238C46C2876C48235BC4823B5"
 # Used for Let's Encrypt registration
 certbot_email = "liam@gr4y-r0se.com"
 
+# SES sender address — must use a domain that SES has verified (themeatensemble.uk).
+# After terraform apply, check verification status with the ses_verify_cmd output,
+# then request SES production access to send to unverified addresses.
+ses_from_address = "noreply@themeatensemble.uk"
+
 # SSH access — leave key_name as null to use SSM Session Manager instead (recommended)
 # key_name          = "your-keypair-name"
 # ssh_allowed_cidrs = ["YOUR_HOME_IP/32"]

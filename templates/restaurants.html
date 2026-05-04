@@ -2,57 +2,6 @@
 {% block title %}Restaurants · The Meat Ensemble{% endblock %}
 
 {% block content %}
-  <style>
-    .restaurant-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 1rem;
-      margin: 1.25rem 0 2rem;
-    }
-    .restaurant-card {
-      display: flex;
-      flex-direction: column;
-      gap: 0.35rem;
-      margin-bottom: 0;
-    }
-    .restaurant-card__header {
-      display: flex;
-      align-items: baseline;
-      gap: 0.6rem;
-      flex-wrap: wrap;
-    }
-    .restaurant-card__name {
-      margin: 0;
-      font-size: 1.1rem;
-      color: var(--accent-dark);
-    }
-    .restaurant-card__detail {
-      font-size: 0.9rem;
-      color: var(--muted);
-      margin: 0;
-    }
-    .restaurant-card__desc {
-      font-size: 0.92rem;
-      margin: 0;
-      line-height: 1.5;
-    }
-    .restaurant-card__link {
-      font-size: 0.88rem;
-    }
-    .restaurant-card__footer {
-      font-size: 0.78rem;
-      color: var(--muted);
-      margin-top: auto;
-      padding-top: 0.5rem;
-      border-top: 1px solid var(--line);
-    }
-    .section-divider {
-      border: none;
-      border-top: 1px solid var(--line);
-      margin: 2rem 0;
-    }
-  </style>
-
   <h1>Restaurants</h1>
 
   {# ── Approved restaurants ─────────────────────────────────── #}

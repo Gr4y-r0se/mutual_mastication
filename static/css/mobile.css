@@ -1,0 +1,147 @@
+/* Mobile layout — loaded by base_mobile.html only */
+
+* { -webkit-tap-highlight-color: transparent; }
+
+body { line-height: 1.6; font-size: 16px; }
+
+/* ── Header & hamburger ───────────────────────────────────── */
+/*
+ * Structure inside <header>:
+ *   <input#nav-toggle>   hidden checkbox (toggle state)
+ *   <div.header-bar>     brand + burger label (adjacent sibling of input)
+ *   <nav>                subsequent sibling — shown/hidden via :checked
+ *
+ * CSS sibling selectors require all three to be siblings inside <header>.
+ */
+header { background: var(--ink); color: var(--bg); }
+
+#nav-toggle { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
+
+.header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1rem;
+}
+.brand { color: var(--bg); text-decoration: none; font-size: 1.2rem; font-weight: bold; }
+
+.burger {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  padding: 6px;
+  min-width: 36px;
+  min-height: 36px;
+}
+.burger span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: var(--bg);
+  border-radius: 2px;
+  transition: transform 0.2s, opacity 0.2s;
+}
+#nav-toggle:checked + .header-bar .burger span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+#nav-toggle:checked + .header-bar .burger span:nth-child(2) { opacity: 0; }
+#nav-toggle:checked + .header-bar .burger span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+nav {
+  display: none;
+  flex-direction: column;
+  border-top: 1px solid rgba(255,255,255,0.12);
+}
+#nav-toggle:checked ~ nav { display: flex; }
+
+.nav-item {
+  display: block;
+  color: var(--bg);
+  text-decoration: none;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  font-size: 1rem;
+}
+.nav-greeting { color: rgba(255,255,255,0.5); font-size: 0.85rem; padding: 0.6rem 1rem; }
+.nav-form { margin: 0; padding: 0; }
+.nav-logout {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  color: var(--bg);
+  font: inherit;
+  font-size: 1rem;
+  text-align: left;
+  padding: 0.85rem 1rem;
+  cursor: pointer;
+}
+
+/* ── Layout ───────────────────────────────────────────────── */
+main { padding: 1.25rem 1rem 4rem; }
+h1 { font-size: 1.5rem; }
+h2 { font-size: 1.2rem; }
+
+/* ── Forms ────────────────────────────────────────────────── */
+form.stack { display: flex; flex-direction: column; gap: 1rem; max-width: 100%; }
+label { display: flex; flex-direction: column; gap: 0.3rem; font-size: 1rem; }
+
+input[type=text], input[type=email], input[type=password],
+input[type=datetime-local], input[type=url],
+textarea, select {
+  font: inherit;
+  font-size: 16px; /* prevents iOS zoom on focus */
+  padding: 0.75rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+  color: var(--ink);
+  width: 100%;
+  -webkit-appearance: none;
+}
+textarea { min-height: 7rem; resize: vertical; }
+
+/* ── Buttons ──────────────────────────────────────────────── */
+button, .button {
+  font: inherit;
+  font-size: 1rem;
+  padding: 0.8rem 1.25rem;
+  border-radius: 8px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  min-height: 48px;
+  touch-action: manipulation;
+}
+button:active, .button:active { background: var(--accent-dark); }
+button.secondary, .button.secondary { background: transparent; color: var(--accent); }
+button.secondary:active, .button.secondary:active { background: var(--accent); color: white; }
+
+/* ── Cards & tables ───────────────────────────────────────── */
+.card {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 1rem;
+  margin-bottom: 0.85rem;
+}
+
+/* Data tables are wrapped in .tbl-scroll by JS at page load */
+.tbl-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 1rem; }
+table { width: 100%; border-collapse: collapse; min-width: 360px; }
+th, td { text-align: left; padding: 0.55rem 0.5rem; border-bottom: 1px solid var(--line); font-size: 0.88rem; }
+th { background: #f1eadd; white-space: nowrap; }
+
+.option-row { display: flex; align-items: center; gap: 0.6rem; padding: 0.7rem 0; min-height: 48px; }
+
+/* ── Calendar mobile overrides ────────────────────────────── */
+.cal-table { min-width: unset; }
+.cal-table th { font-size: 0.65rem; }
+.cal-cell { min-height: 48px; }
+.cal-day-num { font-size: 0.85rem; }
+.cal-vote-count { font-size: 0.62rem; }
+.cal-noopt { font-size: 0.8rem; }

@@ -12,6 +12,9 @@ SECRET_KEY="${secret_key}"
 CERTBOT_EMAIL="${certbot_email}"
 CERTBOT_DOMAINS="${certbot_domains}"
 NGINX_SERVER_NAME="${server_name}"
+SES_FROM_ADDRESS="${ses_from_address}"
+SES_REGION="${ses_region}"
+APP_URL="https://${domain_name}"
 
 # ── Derived paths ────────────────────────────────────────────────────────────
 APP_USER="appuser"
@@ -55,6 +58,9 @@ User=$APP_USER
 Group=$APP_USER
 WorkingDirectory=$APP_DIR
 Environment="SECURE_COOKIES=1"
+Environment="SES_FROM_ADDRESS=$SES_FROM_ADDRESS"
+Environment="SES_REGION=$SES_REGION"
+Environment="APP_URL=$APP_URL"
 ExecStart=$APP_DIR/venv/bin/gunicorn \\
     --workers 2 \\
     --bind unix:$SOCKET_DIR/app.sock \\
@@ -72,6 +78,37 @@ EOF
 
 systemctl daemon-reload
 systemctl enable --now "$APP_NAME"
+
+# ── Poll notification service + hourly timer ─────────────────────────────────
+cat > "/etc/systemd/system/$APP_NAME-notify.service" << EOF
+[Unit]
+Description=$APP_NAME poll notifications
+After=network.target
+
+[Service]
+Type=oneshot
+User=$APP_USER
+WorkingDirectory=$APP_DIR
+Environment="SES_FROM_ADDRESS=$SES_FROM_ADDRESS"
+Environment="SES_REGION=$SES_REGION"
+Environment="APP_URL=$APP_URL"
+ExecStart=$APP_DIR/venv/bin/python $APP_DIR/notify.py
+EOF
+
+cat > "/etc/systemd/system/$APP_NAME-notify.timer" << 'NOTIFY_TIMER_EOF'
+[Unit]
+Description=Run poll notifications hourly
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=1h
+
+[Install]
+WantedBy=timers.target
+NOTIFY_TIMER_EOF
+
+systemctl daemon-reload
+systemctl enable --now "$APP_NAME-notify.timer"
 
 # ── nginx config (HTTP only until certbot adds SSL) ──────────────────────────
 # Adapted from the project's nginx.conf

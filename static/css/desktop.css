@@ -1,0 +1,88 @@
+/* Desktop layout — loaded by base.html only */
+
+body { line-height: 1.55; }
+
+header {
+  background: var(--ink);
+  color: var(--bg);
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+.brand {
+  color: var(--bg);
+  text-decoration: none;
+  font-size: 1.4rem;
+  font-weight: bold;
+  letter-spacing: 0.02em;
+}
+nav { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+nav a, nav .link-button {
+  color: var(--bg);
+  text-decoration: none;
+  background: none;
+  border: none;
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+nav a:hover, nav .link-button:hover { text-decoration: underline; }
+
+main {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+h1 { font-size: 1.75rem; }
+
+/* ── Forms ────────────────────────────────────────────────── */
+form.stack { display: flex; flex-direction: column; gap: 0.75rem; max-width: 420px; }
+label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.95rem; }
+
+input[type=text], input[type=email], input[type=password],
+input[type=datetime-local], input[type=url],
+textarea, select {
+  font: inherit;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: white;
+  color: var(--ink);
+  width: 100%;
+}
+textarea { min-height: 7rem; resize: vertical; font-family: inherit; }
+
+/* ── Buttons ──────────────────────────────────────────────── */
+button, .button {
+  font: inherit;
+  padding: 0.5rem 1rem;
+  border-radius: 5px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: white;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+}
+button:hover, .button:hover { background: var(--accent-dark); border-color: var(--accent-dark); }
+button.secondary, .button.secondary { background: transparent; color: var(--accent); }
+button.secondary:hover, .button.secondary:hover { background: var(--accent); color: white; }
+
+/* ── Cards & tables ───────────────────────────────────────── */
+.card {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1rem;
+}
+
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid var(--line); }
+th { background: #f1eadd; }
+
+.option-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.4rem 0; }

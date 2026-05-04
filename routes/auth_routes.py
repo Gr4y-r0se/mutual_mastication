@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import secrets
+import time
+
 from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -13,6 +16,7 @@ from config import (
     USERNAME_RE,
 )
 from database import get_db
+from email_service import send_password_reset
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -25,7 +29,6 @@ def ping():
 @auth_bp.route("/register", methods=["GET", "POST"])
 def register():
     db = get_db()
-    # Self-registration is only allowed to bootstrap the very first admin account.
     if db.execute("SELECT COUNT(*) FROM users").fetchone()[0] > 0:
         flash("Account registration is by invitation only.", "error")
         return redirect(url_for("auth.login"))
@@ -176,3 +179,127 @@ def profile():
         .fetchall()
     )
     return render_template("profile.html", user=user, votes=votes)
+
+
+@auth_bp.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if current_user():
+        return redirect(url_for("polls.index"))
+
+    if request.method == "POST":
+        email = (request.form.get("email") or "").strip().lower()
+        db = get_db()
+        user = db.execute(
+            "SELECT id, email FROM users WHERE email = ?", (email,)
+        ).fetchone()
+
+        if user:
+            token = secrets.token_urlsafe(32)
+            expires_at = int(time.time()) + 3600
+            db.execute(
+                "DELETE FROM password_reset_tokens WHERE user_id = ?", (user["id"],)
+            )
+            db.execute(
+                "INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES (?, ?, ?)",
+                (user["id"], token, expires_at),
+            )
+            db.commit()
+            reset_url = url_for("auth.reset_password", token=token, _external=True)
+            send_password_reset(user["email"], reset_url)
+
+        # Always show the same message to prevent email enumeration
+        flash("If that email is registered, a reset link has been sent.", "success")
+        return redirect(url_for("auth.login"))
+
+    return render_template("forgot_password.html")
+
+
+@auth_bp.route("/reset-password/<token>", methods=["GET", "POST"])
+def reset_password(token):
+    if current_user():
+        return redirect(url_for("polls.index"))
+
+    db = get_db()
+    now = int(time.time())
+    record = db.execute(
+        "SELECT id, user_id FROM password_reset_tokens "
+        "WHERE token = ? AND used = 0 AND expires_at > ?",
+        (token, now),
+    ).fetchone()
+
+    if record is None:
+        flash("This reset link is invalid or has expired.", "error")
+        return redirect(url_for("auth.forgot_password"))
+
+    if request.method == "POST":
+        password = request.form.get("password") or ""
+        confirm = request.form.get("confirm_password") or ""
+
+        errors = []
+        if len(password) < MIN_PASSWORD_LENGTH or len(password) > 256:
+            errors.append(f"Password must be {MIN_PASSWORD_LENGTH}-256 characters.")
+        if password != confirm:
+            errors.append("Passwords do not match.")
+
+        if errors:
+            for e in errors:
+                flash(e, "error")
+            return render_template("reset_password.html", token=token)
+
+        password_hash = generate_password_hash(
+            password, method="pbkdf2:sha256", salt_length=16
+        )
+        db.execute(
+            "UPDATE users SET password_hash = ?, failed_attempts = 0, locked_until = NULL "
+            "WHERE id = ?",
+            (password_hash, record["user_id"]),
+        )
+        db.execute(
+            "UPDATE password_reset_tokens SET used = 1 WHERE id = ?", (record["id"],)
+        )
+        db.commit()
+        flash("Password updated. Please log in.", "success")
+        return redirect(url_for("auth.login"))
+
+    return render_template("reset_password.html", token=token)
+
+
+@auth_bp.route("/change-password", methods=["GET", "POST"])
+@login_required
+def change_password():
+    if request.method == "POST":
+        current_password = request.form.get("current_password") or ""
+        new_password = request.form.get("new_password") or ""
+        confirm = request.form.get("confirm_password") or ""
+
+        user = current_user()
+        db = get_db()
+        row = db.execute(
+            "SELECT password_hash FROM users WHERE id = ?", (user["id"],)
+        ).fetchone()
+
+        errors = []
+        if not check_password_hash(row["password_hash"], current_password):
+            errors.append("Current password is incorrect.")
+        if len(new_password) < MIN_PASSWORD_LENGTH or len(new_password) > 256:
+            errors.append(f"New password must be {MIN_PASSWORD_LENGTH}-256 characters.")
+        if new_password != confirm:
+            errors.append("New passwords do not match.")
+
+        if errors:
+            for e in errors:
+                flash(e, "error")
+            return render_template("change_password.html")
+
+        password_hash = generate_password_hash(
+            new_password, method="pbkdf2:sha256", salt_length=16
+        )
+        db.execute(
+            "UPDATE users SET password_hash = ? WHERE id = ?",
+            (password_hash, user["id"]),
+        )
+        db.commit()
+        flash("Password changed successfully.", "success")
+        return redirect(url_for("auth.profile"))
+
+    return render_template("change_password.html")

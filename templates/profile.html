@@ -7,6 +7,7 @@
     {{ user.email }}
     {% if user.is_admin %}<span class="pill">admin</span>{% endif %}
   </p>
+  <p><a href="{{ url_for('auth.change_password') }}">Change password</a></p>
 
   <h2>Your recent votes</h2>
   {% if votes %}

@@ -77,13 +77,26 @@ def init_db() -> None:
             created_at   TEXT NOT NULL DEFAULT (datetime('now'))
         );
 
+        CREATE TABLE IF NOT EXISTS password_reset_tokens (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            token      TEXT UNIQUE NOT NULL,
+            expires_at INTEGER NOT NULL,
+            used       INTEGER NOT NULL DEFAULT 0
+        );
+
         CREATE INDEX IF NOT EXISTS idx_votes_poll   ON votes(poll_id);
         CREATE INDEX IF NOT EXISTS idx_options_poll ON poll_options(poll_id);
         """
     )
     db.commit()
-    try:
-        db.execute("ALTER TABLE restaurants ADD COLUMN link TEXT NOT NULL DEFAULT ''")
-        db.commit()
-    except sqlite3.OperationalError:
-        pass
+    for stmt in [
+        "ALTER TABLE restaurants ADD COLUMN link TEXT NOT NULL DEFAULT ''",
+        "ALTER TABLE polls ADD COLUMN end_date TEXT",
+        "ALTER TABLE polls ADD COLUMN notified_24h INTEGER NOT NULL DEFAULT 0",
+    ]:
+        try:
+            db.execute(stmt)
+            db.commit()
+        except sqlite3.OperationalError:
+            pass

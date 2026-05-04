@@ -31,7 +31,22 @@ catalogue.
 - Self-registration is **disabled** — the first account (which becomes admin) is
   created via `/register`; all subsequent members are added by an admin
 - Admins can add members, grant or revoke admin privileges, unlock locked
-  accounts, and delete members who have no polls or restaurant suggestions
+  accounts, and delete members
+
+### Email notifications
+Emails are sent via **AWS SES** and delivered as both plain text and a branded
+HTML version that matches the site's visual design (dark header, cream body,
+burgundy call-to-action buttons, Georgia serif font throughout).
+
+| Trigger | Recipients |
+|---|---|
+| New poll created | All members |
+| Poll closing within 24 hours | All members |
+| Poll closed | All members |
+| Password reset requested | The requesting member only |
+
+See [Environment variables](#environment-variables) for the SES configuration
+required to enable sending.
 
 ### Mobile
 - The app detects mobile browsers via `User-Agent` and serves a separate
@@ -94,6 +109,55 @@ The config handles:
 |---|---|---|
 | `SECRET_KEY` | Auto-generated, persisted to `.secret_key` (0600) | Flask session signing key — set explicitly in production |
 | `SECURE_COOKIES` | `0` | Set to `1` when serving over HTTPS to add the `Secure` flag to session cookies |
+| `SES_REGION` | `eu-west-1` | AWS region for the SES client |
+| `SES_FROM_ADDRESS` | *(unset — email disabled)* | Verified SES sender address; emails are silently skipped if unset |
+| `APP_URL` | `http://localhost:9999` | Base URL embedded in outbound email links |
+
+## Frontend
+
+All CSS and JavaScript lives in `static/` — no inline styles or scripts in any
+template.
+
+### CSS
+
+| File | Purpose |
+|---|---|
+| `static/css/base.css` | Design tokens (CSS custom properties), shared components: pills, vote cards, calendar, voter tooltip, restaurant grid, flash messages |
+| `static/css/desktop.css` | Desktop layout — flex header/nav, 780 px centred `<main>`, standard-sized form controls and buttons |
+| `static/css/mobile.css` | Mobile layout — pure-CSS hamburger nav, touch-friendly sizing, `.tbl-scroll` horizontal table wrapper |
+
+**Design tokens**
+
+| Token | Value | Usage |
+|---|---|---|
+| `--bg` | `#faf6f1` | Page background (cream) |
+| `--ink` | `#2a1a14` | Body text (dark brown) |
+| `--accent` | `#8a1d1d` | Buttons, links, active states (burgundy) |
+| `--accent-dark` | `#5e1212` | Hover/pressed state |
+| `--muted` | `#6b5a52` | Secondary text, meta information |
+| `--line` | `#e2d5c8` | Borders and dividers |
+| `--ok` | `#1d6b3a` | Success states (green) |
+
+Body font: `Georgia, "Times New Roman", serif`
+
+### JavaScript
+
+| File | Purpose |
+|---|---|
+| `static/js/poll.js` | Poll page — `toggleVote()` for calendar cells, vote-card selection sync, voter hover tooltip |
+| `static/js/cal-picker.js` | Admin poll creation — interactive date-picker calendar (`renderCal`, `toggleDate`, `calPrev`, `calNext`, `onTypeChange`) |
+| `static/js/mobile.js` | Wraps data tables in `.tbl-scroll` scroll containers on page load |
+
+### Adding page-specific styles or scripts
+
+Both base templates expose `{% block extra_css %}` (in `<head>`) and
+`{% block extra_js %}` (before `</body>`):
+
+```html
+{% block extra_js %}
+  <script src="{{ url_for('static', filename='js/my-page.js') }}"></script>
+{% endblock %}
+```
 
 ## Security posture
 
@@ -118,8 +182,7 @@ The config handles:
 
 ### Known limitations / future work
 
-- No email delivery — passwords for new members must be shared out-of-band
-- No password reset flow
+- Passwords for new members must be shared out-of-band (no automated welcome email)
 - No 2FA for admin accounts
 - No structured audit log of admin actions
 - Schema migrations are handled inline: `CREATE TABLE IF NOT EXISTS` covers new
@@ -134,26 +197,41 @@ The config handles:
 ├── config.py                     # Constants, secret-key loader
 ├── database.py                   # SQLite connection, schema init
 ├── auth.py                       # current_user(), @login_required, @admin_required
+├── email_service.py              # AWS SES email sending (plain text + branded HTML)
 ├── routes/
 │   ├── __init__.py               # Blueprint registration, error handlers, security headers
-│   ├── auth_routes.py            # /register  /login  /logout  /profile
+│   ├── auth_routes.py            # /register  /login  /logout  /profile  /forgot-password  /reset-password
 │   ├── poll_routes.py            # /  /poll/<id>  /poll/<id>/vote
 │   ├── admin_routes.py           # /admin/*
 │   └── restaurant_routes.py      # /restaurants  /restaurants/suggest
 ├── templates/
-│   ├── base.html                 # Desktop layout
+│   ├── base.html                 # Desktop layout (links css/base.css + css/desktop.css)
 │   ├── base_mobile.html          # Mobile layout (hamburger nav, large tap targets)
 │   ├── index.html                # Poll list
 │   ├── login.html
 │   ├── register.html             # Bootstrap-only (first admin account)
 │   ├── profile.html
-│   ├── poll.html                 # Calendar view (date polls) or list view (restaurant polls)
+│   ├── change_password.html
+│   ├── forgot_password.html
+│   ├── reset_password.html
+│   ├── poll.html                 # Calendar view (date polls) or card view (restaurant polls)
 │   ├── restaurants.html          # Approved catalogue + suggestion form
 │   ├── admin.html                # Dashboard: polls, members
 │   ├── admin_new_poll.html       # Calendar picker (date) or checkbox list (restaurant)
 │   ├── admin_new_user.html       # Add member form
 │   ├── admin_restaurants.html    # Approve / reject suggestions
 │   └── error.html
+├── static/
+│   ├── css/
+│   │   ├── base.css              # Design tokens + shared components
+│   │   ├── desktop.css           # Desktop layout
+│   │   └── mobile.css            # Mobile layout + hamburger nav
+│   ├── js/
+│   │   ├── poll.js               # Calendar toggle, vote-card sync, voter tooltip
+│   │   ├── cal-picker.js         # Admin date-picker calendar
+│   │   └── mobile.js             # Table scroll-wrapper initialisation
+│   └── favicon.ico
+├── terraform/                    # EC2 + SES infrastructure
 ├── nginx.conf                    # Production nginx reverse-proxy config
 └── requirements.txt
 ```

@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 from werkzeug.security import generate_password_hash
 
 from auth import admin_required, current_user
 from config import EMAIL_RE, MIN_PASSWORD_LENGTH, USERNAME_RE
 from database import get_db
+from email_service import send_poll_created
 
 admin_bp = Blueprint("admin", __name__)
 
@@ -18,7 +21,7 @@ def dashboard():
         "SELECT id, username, email, is_admin, created_at FROM users ORDER BY created_at DESC"
     ).fetchall()
     polls = db.execute(
-        "SELECT id, title, poll_type, vote_mode, status, created_at "
+        "SELECT id, title, poll_type, vote_mode, status, end_date, created_at "
         "FROM polls ORDER BY created_at DESC"
     ).fetchall()
     pending_count = db.execute(
@@ -42,6 +45,7 @@ def new_poll():
         description = (request.form.get("description") or "").strip()
         poll_type = request.form.get("poll_type") or ""
         vote_mode = request.form.get("vote_mode") or ""
+        end_date_raw = (request.form.get("end_date") or "").strip()
 
         errors = []
         if not (1 <= len(title) <= 200):
@@ -52,6 +56,16 @@ def new_poll():
             errors.append("Poll type must be 'date' or 'restaurant'.")
         if vote_mode not in ("single", "approval"):
             errors.append("Vote mode must be 'single' or 'approval'.")
+
+        end_date = None
+        if end_date_raw:
+            try:
+                # datetime-local gives "YYYY-MM-DDTHH:MM"
+                end_date = datetime.strptime(end_date_raw, "%Y-%m-%dT%H:%M").strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                )
+            except ValueError:
+                errors.append("Invalid end date format.")
 
         if poll_type == "restaurant":
             try:
@@ -90,13 +104,14 @@ def new_poll():
                 description=description,
                 poll_type=poll_type,
                 vote_mode=vote_mode,
+                end_date=end_date_raw,
                 approved_restaurants=approved_restaurants,
             )
 
         cursor = db.execute(
-            "INSERT INTO polls (title, description, poll_type, vote_mode, created_by) "
-            "VALUES (?, ?, ?, ?, ?)",
-            (title, description, poll_type, vote_mode, current_user()["id"]),
+            "INSERT INTO polls (title, description, poll_type, vote_mode, created_by, end_date) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (title, description, poll_type, vote_mode, current_user()["id"], end_date),
         )
         poll_id = cursor.lastrowid
         for label in options:
@@ -105,6 +120,12 @@ def new_poll():
                 (poll_id, label),
             )
         db.commit()
+
+        send_poll_created(
+            {"id": poll_id, "title": title, "description": description, "end_date": end_date},
+            db,
+        )
+
         flash("Poll created.", "success")
         return redirect(url_for("polls.view_poll", poll_id=poll_id))
 

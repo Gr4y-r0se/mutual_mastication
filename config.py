@@ -9,6 +9,7 @@ from werkzeug.security import generate_password_hash
 
 BASE_DIR = Path(__file__).resolve().parent
 DATABASE = BASE_DIR / "meat_ensemble.db"
+APP_URL = os.environ.get("APP_URL", "http://localhost:9999").rstrip("/")
 
 USERNAME_RE = re.compile(r"^[A-Za-z0-9_]{3,32}$")
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")

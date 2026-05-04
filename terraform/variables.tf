@@ -65,3 +65,8 @@ variable "certbot_email" {
   description = "Email for Let's Encrypt registration and expiry notices"
   type        = string
 }
+
+variable "ses_from_address" {
+  description = "SES sender address for app emails (e.g. noreply@yourdomain.com). Domain must match the verified SES domain."
+  type        = string
+}

@@ -87,6 +87,9 @@
         "iam:PassRole",
         "iam:RemoveRoleFromInstanceProfile",
         "iam:TagInstanceProfile",
+        "iam:DeleteRolePolicy",
+        "iam:GetRolePolicy",
+        "iam:PutRolePolicy",
         "iam:TagRole",
         "iam:UntagRole",
         "iam:UpdateAssumeRolePolicy"
@@ -107,6 +110,18 @@
         "arn:aws:route53:::hostedzone/Z07471842KTHH201RTW88",
         "arn:aws:route53:::change/*"
       ]
+    },
+    {
+      "Sid": "SES",
+      "Effect": "Allow",
+      "Action": [
+        "ses:DeleteIdentity",
+        "ses:GetIdentityDkimAttributes",
+        "ses:GetIdentityVerificationAttributes",
+        "ses:VerifyDomainDkim",
+        "ses:VerifyDomainIdentity"
+      ],
+      "Resource": "*"
     }
   ]
 }

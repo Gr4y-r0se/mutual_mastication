@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% block title %}New poll · The Meat Ensemble{% endblock %}
 
+{% block extra_js %}
+  <script src="{{ url_for('static', filename='js/cal-picker.js') }}"></script>
+{% endblock %}
+
 {% block content %}
   <p><a href="{{ url_for('admin.dashboard') }}">← back to admin</a></p>
 
@@ -40,6 +44,12 @@
         </option>
       </select>
       <small class="meta">Approval is recommended for dates; single choice for restaurants.</small>
+    </label>
+
+    <label>
+      Poll closes (optional)
+      <input type="datetime-local" name="end_date" value="{{ end_date or '' }}">
+      <small class="meta">Leave blank for no automatic end date. Members are emailed at 24 h remaining and on closure.</small>
     </label>
 
     {# ── Date picker ─────────────────────────────────────────── #}
@@ -94,108 +104,4 @@
       <a class="button secondary" href="{{ url_for('admin.dashboard') }}">Cancel</a>
     </div>
   </form>
-
-  <script>
-    const MONTH_NAMES = [
-      'January','February','March','April','May','June',
-      'July','August','September','October','November','December'
-    ];
-
-    let selectedDates = new Set();
-    let viewYear  = new Date().getFullYear();
-    let viewMonth = new Date().getMonth(); // 0-based
-
-    function daysInMonth(y, m) {
-      return new Date(y, m + 1, 0).getDate();
-    }
-
-    // Returns Monday-based day-of-week index for the 1st of given month (0=Mon, 6=Sun).
-    function firstWeekday(y, m) {
-      return (new Date(y, m, 1).getDay() + 6) % 7;
-    }
-
-    function fmtDate(y, m, d) {
-      return y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
-    }
-
-    function renderCal() {
-      document.getElementById('cal-month-label').textContent =
-        MONTH_NAMES[viewMonth] + ' ' + viewYear;
-
-      const tbody = document.getElementById('cal-picker-body');
-      const first = firstWeekday(viewYear, viewMonth);
-      const total = daysInMonth(viewYear, viewMonth);
-      const today = new Date();
-
-      let html = '';
-      let day = 1;
-      for (let week = 0; week < 6; week++) {
-        if (day > total) break;
-        html += '<tr>';
-        for (let wd = 0; wd < 7; wd++) {
-          if (week === 0 && wd < first) {
-            html += '<td class="cal-cell cal-empty"></td>';
-          } else if (day > total) {
-            html += '<td class="cal-cell cal-empty"></td>';
-          } else {
-            const ds = fmtDate(viewYear, viewMonth, day);
-            const sel = selectedDates.has(ds);
-            const isPast = new Date(viewYear, viewMonth, day) < new Date(today.getFullYear(), today.getMonth(), today.getDate());
-            html += '<td class="cal-picker-cell'
-              + (sel ? ' cal-picker-selected' : '')
-              + (isPast ? ' cal-picker-past' : '')
-              + '" onclick="toggleDate(\'' + ds + '\')">'
-              + day + '</td>';
-            day++;
-          }
-        }
-        html += '</tr>';
-      }
-      tbody.innerHTML = html;
-
-      const sorted = Array.from(selectedDates).sort();
-      const summary = document.getElementById('cal-summary');
-      if (sorted.length === 0) {
-        summary.textContent = 'No dates selected.';
-      } else {
-        summary.textContent = sorted.length + ' date(s) selected: ' + sorted.join(', ');
-      }
-      document.getElementById('options').value = sorted.join('\n');
-    }
-
-    function toggleDate(ds) {
-      if (selectedDates.has(ds)) {
-        selectedDates.delete(ds);
-      } else {
-        selectedDates.add(ds);
-      }
-      renderCal();
-    }
-
-    function calPrev() {
-      if (viewMonth === 0) { viewMonth = 11; viewYear--; } else viewMonth--;
-      renderCal();
-    }
-
-    function calNext() {
-      if (viewMonth === 11) { viewMonth = 0; viewYear++; } else viewMonth++;
-      renderCal();
-    }
-
-    function onTypeChange() {
-      const t = document.getElementById('poll_type').value;
-      document.getElementById('date-picker').style.display       = t === 'date'       ? 'block' : 'none';
-      document.getElementById('restaurant-picker').style.display = t === 'restaurant' ? 'block' : 'none';
-      // Sync vote_mode recommendation
-      const vm = document.getElementById('vote_mode');
-      if (t === 'date' && vm.value === 'single')    vm.value = 'approval';
-      if (t === 'restaurant' && vm.value === 'approval') vm.value = 'single';
-    }
-
-    // Initialise on load
-    document.addEventListener('DOMContentLoaded', function() {
-      renderCal();
-      onTypeChange();
-    });
-  </script>
 {% endblock %}
