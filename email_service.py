@@ -1,6 +1,7 @@
 """AWS SES email delivery: HTML template builder and application-level send functions."""
 from __future__ import annotations
 
+import html as _html
 import logging
 import os
 
@@ -35,16 +36,17 @@ def _email_html(title: str, body_html: str, cta_text: str = "", cta_url: str = "
     and a footer disclaimer. Uses string concatenation rather than f-strings to avoid
     conflicts with CSS curly braces.
     """
+    safe_title = _html.escape(title)
     cta_block = ""
     if cta_text and cta_url:
         cta_block = (
             '<tr><td style="padding:0 32px 28px;">'
-            '<a href="' + cta_url + '" '
+            '<a href="' + _html.escape(cta_url, quote=True) + '" '
             'style="display:inline-block;background:#8a1d1d;color:#ffffff;'
             'font-family:Georgia,\'Times New Roman\',serif;font-size:15px;'
             'font-weight:bold;text-decoration:none;padding:12px 28px;'
             'border-radius:6px;">'
-            + cta_text +
+            + _html.escape(cta_text) +
             '</a></td></tr>'
         )
 
@@ -54,7 +56,7 @@ def _email_html(title: str, body_html: str, cta_text: str = "", cta_url: str = "
         '<head>'
         '<meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
-        '<title>' + title + '</title>'
+        '<title>' + safe_title + '</title>'
         '</head>'
         '<body style="margin:0;padding:0;background:#ede5da;'
         'font-family:Georgia,\'Times New Roman\',serif;">'
@@ -78,7 +80,7 @@ def _email_html(title: str, body_html: str, cta_text: str = "", cta_url: str = "
         '<tr><td style="background:#5e1212;padding:18px 32px;">'
         '<h1 style="margin:0;font-size:19px;color:#faf6f1;'
         'font-family:Georgia,\'Times New Roman\',serif;font-weight:normal;'
-        'letter-spacing:0.01em;">' + title + '</h1>'
+        'letter-spacing:0.01em;">' + safe_title + '</h1>'
         '</td></tr>'
 
         # Body
@@ -152,9 +154,11 @@ def send_poll_created(poll: dict, db) -> bool:
         body_text += f"\n  {poll['description']}\n"
     body_text += f"\n  Closes: {end}\n\nCast your vote: {url}\n"
 
-    # HTML
+    # HTML — escape all user-supplied values before interpolation
+    safe_poll_title = _html.escape(poll["title"])
+    safe_end = _html.escape(str(end))
     desc_block = (
-        f'<p style="margin:0 0 12px;color:#6b5a52;">{poll["description"]}</p>'
+        '<p style="margin:0 0 12px;color:#6b5a52;">' + _html.escape(poll["description"]) + '</p>'
         if poll.get("description") else ""
     )
     body_html = (
@@ -163,9 +167,9 @@ def send_poll_created(poll: dict, db) -> bool:
         ' style="background:#faf6f1;border:1px solid #e2d5c8;border-radius:8px;'
         'padding:16px 20px;margin:0 0 20px;width:100%;">'
         '<tr><td>'
-        f'<p style="margin:0 0 6px;font-size:17px;font-weight:bold;color:#2a1a14;">{poll["title"]}</p>'
+        '<p style="margin:0 0 6px;font-size:17px;font-weight:bold;color:#2a1a14;">' + safe_poll_title + '</p>'
         + desc_block +
-        f'<p style="margin:0;font-size:13px;color:#6b5a52;">Closes: {end}</p>'
+        '<p style="margin:0;font-size:13px;color:#6b5a52;">Closes: ' + safe_end + '</p>'
         '</td></tr>'
         '</table>'
     )
@@ -195,16 +199,16 @@ def send_polls_closing_soon(polls: list, db) -> bool:
         f"Head to {base} to cast your vote.\n"
     )
 
-    # HTML
+    # HTML — escape all user-supplied values before interpolation
     rows = "".join(
         '<tr>'
         '<td style="padding:10px 0;border-bottom:1px solid #e2d5c8;">'
-        f'<p style="margin:0 0 3px;font-weight:bold;color:#2a1a14;">{p["title"]}</p>'
-        f'<p style="margin:0;font-size:13px;color:#6b5a52;">Closes {p["end_date"]}</p>'
+        '<p style="margin:0 0 3px;font-weight:bold;color:#2a1a14;">' + _html.escape(p["title"]) + '</p>'
+        '<p style="margin:0;font-size:13px;color:#6b5a52;">Closes ' + _html.escape(str(p["end_date"])) + '</p>'
         '</td>'
         '<td style="padding:10px 0 10px 16px;border-bottom:1px solid #e2d5c8;'
         'text-align:right;white-space:nowrap;vertical-align:middle;">'
-        f'<a href="{base}/poll/{p["id"]}" style="color:#8a1d1d;font-size:13px;">Vote →</a>'
+        '<a href="' + _html.escape(f"{base}/poll/{p['id']}", quote=True) + '" style="color:#8a1d1d;font-size:13px;">Vote →</a>'
         '</td>'
         '</tr>'
         for p in polls
@@ -244,15 +248,15 @@ def send_polls_closed(polls: list, db) -> bool:
         f"Visit {base} for full details.\n"
     )
 
-    # HTML
+    # HTML — escape all user-supplied values before interpolation
     rows = "".join(
         '<tr>'
         '<td style="padding:10px 0;border-bottom:1px solid #e2d5c8;">'
-        f'<p style="margin:0;font-weight:bold;color:#2a1a14;">{p["title"]}</p>'
+        '<p style="margin:0;font-weight:bold;color:#2a1a14;">' + _html.escape(p["title"]) + '</p>'
         '</td>'
         '<td style="padding:10px 0 10px 16px;border-bottom:1px solid #e2d5c8;'
         'text-align:right;white-space:nowrap;vertical-align:middle;">'
-        f'<a href="{base}/poll/{p["id"]}" style="color:#8a1d1d;font-size:13px;">See results →</a>'
+        '<a href="' + _html.escape(f"{base}/poll/{p['id']}", quote=True) + '" style="color:#8a1d1d;font-size:13px;">See results →</a>'
         '</td>'
         '</tr>'
         for p in polls

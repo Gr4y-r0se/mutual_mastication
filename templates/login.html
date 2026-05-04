@@ -3,7 +3,7 @@
 
 {% block content %}
   <h1>Log in</h1>
-  <form method="post" class="stack" action="{{ url_for('auth.login') }}" autocomplete="on">
+  <form method="post" class="stack" action="{{ url_for('auth.login', next=request.args.get('next', '')) }}" autocomplete="on">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <label>
       Username
