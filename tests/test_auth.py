@@ -1,6 +1,7 @@
 """Integration tests for authentication routes (/register, /login, /logout,
 /profile, /forgot-password, /reset-password, /change-password).
 """
+
 from __future__ import annotations
 
 import time
@@ -10,76 +11,104 @@ import pytest
 import database as _db_mod
 from tests.conftest import DEFAULT_PASSWORD, get_db_value, login, make_user, text
 
-
 # ── /register ──────────────────────────────────────────────────────────────────
+
 
 class TestRegister:
     def test_first_admin_created_successfully(self, client):
-        resp = client.post("/register", data={
-            "username": "alice",
-            "email": "alice@example.com",
-            "password": DEFAULT_PASSWORD,
-            "confirm_password": DEFAULT_PASSWORD,
-        }, follow_redirects=True)
+        resp = client.post(
+            "/register",
+            data={
+                "username": "alice",
+                "email": "alice@example.com",
+                "password": DEFAULT_PASSWORD,
+                "confirm_password": DEFAULT_PASSWORD,
+            },
+            follow_redirects=True,
+        )
         assert resp.status_code == 200
         assert "log in" in text(resp)
 
     def test_blocked_when_users_already_exist(self, client, app):
         make_user(app)
-        resp = client.post("/register", data={
-            "username": "bob",
-            "email": "bob@example.com",
-            "password": DEFAULT_PASSWORD,
-            "confirm_password": DEFAULT_PASSWORD,
-        }, follow_redirects=True)
+        resp = client.post(
+            "/register",
+            data={
+                "username": "bob",
+                "email": "bob@example.com",
+                "password": DEFAULT_PASSWORD,
+                "confirm_password": DEFAULT_PASSWORD,
+            },
+            follow_redirects=True,
+        )
         assert "invitation only" in text(resp)
 
     def test_password_too_short(self, client):
-        resp = client.post("/register", data={
-            "username": "alice",
-            "email": "alice@example.com",
-            "password": "short",
-            "confirm_password": "short",
-        }, follow_redirects=True)
+        resp = client.post(
+            "/register",
+            data={
+                "username": "alice",
+                "email": "alice@example.com",
+                "password": "short",
+                "confirm_password": "short",
+            },
+            follow_redirects=True,
+        )
         assert "10" in text(resp)
 
     def test_password_mismatch(self, client):
-        resp = client.post("/register", data={
-            "username": "alice",
-            "email": "alice@example.com",
-            "password": DEFAULT_PASSWORD,
-            "confirm_password": DEFAULT_PASSWORD + "x",
-        }, follow_redirects=True)
+        resp = client.post(
+            "/register",
+            data={
+                "username": "alice",
+                "email": "alice@example.com",
+                "password": DEFAULT_PASSWORD,
+                "confirm_password": DEFAULT_PASSWORD + "x",
+            },
+            follow_redirects=True,
+        )
         assert "do not match" in text(resp)
 
     def test_invalid_username_rejected(self, client):
-        resp = client.post("/register", data={
-            "username": "a!",
-            "email": "alice@example.com",
-            "password": DEFAULT_PASSWORD,
-            "confirm_password": DEFAULT_PASSWORD,
-        }, follow_redirects=True)
+        resp = client.post(
+            "/register",
+            data={
+                "username": "a!",
+                "email": "alice@example.com",
+                "password": DEFAULT_PASSWORD,
+                "confirm_password": DEFAULT_PASSWORD,
+            },
+            follow_redirects=True,
+        )
         assert "username" in text(resp)
 
     def test_duplicate_username_rejected(self, client, app):
         # First registration succeeds
-        client.post("/register", data={
-            "username": "alice",
-            "email": "alice@example.com",
-            "password": DEFAULT_PASSWORD,
-            "confirm_password": DEFAULT_PASSWORD,
-        })
+        client.post(
+            "/register",
+            data={
+                "username": "alice",
+                "email": "alice@example.com",
+                "password": DEFAULT_PASSWORD,
+                "confirm_password": DEFAULT_PASSWORD,
+            },
+        )
         # Subsequent registration is blocked (users already exist)
-        resp = client.post("/register", data={
-            "username": "alice",
-            "email": "other@example.com",
-            "password": DEFAULT_PASSWORD,
-            "confirm_password": DEFAULT_PASSWORD,
-        }, follow_redirects=True)
+        resp = client.post(
+            "/register",
+            data={
+                "username": "alice",
+                "email": "other@example.com",
+                "password": DEFAULT_PASSWORD,
+                "confirm_password": DEFAULT_PASSWORD,
+            },
+            follow_redirects=True,
+        )
         assert "invitation only" in text(resp)
 
 
 # ── /login ─────────────────────────────────────────────────────────────────────
+
 
 class TestLogin:
     def test_valid_credentials_succeed(self, client, app):
@@ -89,13 +118,19 @@ class TestLogin:
 
     def test_wrong_password_rejected(self, client, app):
         make_user(app, username="alice")
-        resp = client.post("/login", data={"username": "alice", "password": "badpassword"},
-                           follow_redirects=True)
+        resp = client.post(
+            "/login",
+            data={"username": "alice", "password": "badpassword"},
+            follow_redirects=True,
+        )
         assert "invalid" in text(resp)
 
     def test_unknown_username_shows_same_error(self, client):
-        resp = client.post("/login", data={"username": "nobody", "password": DEFAULT_PASSWORD},
-                           follow_redirects=True)
+        resp = client.post(
+            "/login",
+            data={"username": "nobody", "password": DEFAULT_PASSWORD},
+            follow_redirects=True,
+        )
         assert "invalid" in text(resp)
 
     def test_session_set_on_success(self, client, app):
@@ -103,6 +138,7 @@ class TestLogin:
         with client:
             login(client, "alice")
             from flask import session
+
             assert "user_id" in session
 
     def test_next_param_honoured_for_relative_path(self, client, app):
@@ -136,8 +172,11 @@ class TestLogin:
         make_user(app, username="alice")
         for _ in range(5):
             client.post("/login", data={"username": "alice", "password": "wrong"})
-        resp = client.post("/login", data={"username": "alice", "password": "wrong"},
-                           follow_redirects=True)
+        resp = client.post(
+            "/login",
+            data={"username": "alice", "password": "wrong"},
+            follow_redirects=True,
+        )
         assert "locked" in text(resp)
 
     def test_locked_account_rejects_correct_password(self, client, app):
@@ -157,11 +196,14 @@ class TestLogin:
         client.post("/login", data={"username": "alice", "password": "bad"})
         client.post("/login", data={"username": "alice", "password": "bad"})
         login(client, "alice")
-        row = get_db_value(app, "SELECT failed_attempts FROM users WHERE id = ?", (u["id"],))
+        row = get_db_value(
+            app, "SELECT failed_attempts FROM users WHERE id = ?", (u["id"],)
+        )
         assert row["failed_attempts"] == 0
 
 
 # ── /logout ────────────────────────────────────────────────────────────────────
+
 
 class TestLogout:
     def test_clears_session(self, client, app):
@@ -170,6 +212,7 @@ class TestLogout:
         with client:
             client.post("/logout")
             from flask import session
+
             assert "user_id" not in session
 
     def test_redirects_after_logout(self, client, app):
@@ -184,6 +227,7 @@ class TestLogout:
 
 
 # ── /profile ───────────────────────────────────────────────────────────────────
+
 
 class TestProfile:
     def test_redirects_when_not_logged_in(self, client):
@@ -206,11 +250,14 @@ class TestProfile:
 
 # ── /forgot-password ───────────────────────────────────────────────────────────
 
+
 class TestForgotPassword:
     def test_unknown_email_shows_same_message(self, client):
-        resp = client.post("/forgot-password",
-                           data={"email": "nobody@example.com"},
-                           follow_redirects=True)
+        resp = client.post(
+            "/forgot-password",
+            data={"email": "nobody@example.com"},
+            follow_redirects=True,
+        )
         # Must not reveal whether the email exists
         assert "if that email" in text(resp) or "link has been sent" in text(resp)
 
@@ -223,10 +270,12 @@ class TestForgotPassword:
 
     def test_known_email_calls_send_password_reset(self, client, app, monkeypatch):
         called_with = {}
+
         def fake_send(email, url):
             called_with["email"] = email
             called_with["url"] = url
             return True
+
         monkeypatch.setattr("email_service.send_password_reset", fake_send)
         make_user(app, username="alice", email="alice@example.com")
         client.post("/forgot-password", data={"email": "alice@example.com"})
@@ -243,6 +292,7 @@ class TestForgotPassword:
 
 
 # ── /reset-password ────────────────────────────────────────────────────────────
+
 
 class TestResetPassword:
     def _insert_token(self, app, user_id, token="valid-token-abc", hours=1):
@@ -281,42 +331,58 @@ class TestResetPassword:
         u = make_user(app, username="alice")
         self._insert_token(app, u["id"])
         new_pw = "newpassword999"
-        client.post("/reset-password/valid-token-abc",
-                    data={"password": new_pw, "confirm_password": new_pw})
-        resp = client.post("/login", data={"username": "alice", "password": new_pw},
-                           follow_redirects=True)
+        client.post(
+            "/reset-password/valid-token-abc",
+            data={"password": new_pw, "confirm_password": new_pw},
+        )
+        resp = client.post(
+            "/login",
+            data={"username": "alice", "password": new_pw},
+            follow_redirects=True,
+        )
         assert "welcome" in text(resp)
 
     def test_token_marked_used_after_reset(self, client, app):
         u = make_user(app, username="alice")
         self._insert_token(app, u["id"])
         new_pw = "newpassword999"
-        client.post("/reset-password/valid-token-abc",
-                    data={"password": new_pw, "confirm_password": new_pw})
-        row = get_db_value(app,
-                           "SELECT used FROM password_reset_tokens WHERE token = 'valid-token-abc'")
+        client.post(
+            "/reset-password/valid-token-abc",
+            data={"password": new_pw, "confirm_password": new_pw},
+        )
+        row = get_db_value(
+            app,
+            "SELECT used FROM password_reset_tokens WHERE token = 'valid-token-abc'",
+        )
         assert row["used"] == 1
 
     def test_used_token_cannot_be_reused(self, client, app):
         u = make_user(app, username="alice")
         self._insert_token(app, u["id"])
         new_pw = "newpassword999"
-        client.post("/reset-password/valid-token-abc",
-                    data={"password": new_pw, "confirm_password": new_pw})
+        client.post(
+            "/reset-password/valid-token-abc",
+            data={"password": new_pw, "confirm_password": new_pw},
+        )
         resp = client.get("/reset-password/valid-token-abc")
         assert resp.status_code == 302  # token now used → redirect
 
     def test_password_mismatch_shows_error(self, client, app):
         u = make_user(app, username="alice")
         self._insert_token(app, u["id"])
-        resp = client.post("/reset-password/valid-token-abc", data={
-            "password": "newpassword999",
-            "confirm_password": "differentpassword",
-        }, follow_redirects=True)
+        resp = client.post(
+            "/reset-password/valid-token-abc",
+            data={
+                "password": "newpassword999",
+                "confirm_password": "differentpassword",
+            },
+            follow_redirects=True,
+        )
         assert "do not match" in text(resp)
 
 
 # ── /change-password ───────────────────────────────────────────────────────────
+
 
 class TestChangePassword:
     def test_redirects_when_not_logged_in(self, client):
@@ -326,53 +392,72 @@ class TestChangePassword:
     def test_wrong_current_password(self, client, app):
         make_user(app, username="alice")
         login(client, "alice")
-        resp = client.post("/change-password", data={
-            "current_password": "wrongpassword",
-            "new_password": "newpassword123",
-            "confirm_password": "newpassword123",
-        }, follow_redirects=True)
+        resp = client.post(
+            "/change-password",
+            data={
+                "current_password": "wrongpassword",
+                "new_password": "newpassword123",
+                "confirm_password": "newpassword123",
+            },
+            follow_redirects=True,
+        )
         assert "incorrect" in text(resp)
 
     def test_new_password_too_short(self, client, app):
         make_user(app, username="alice")
         login(client, "alice")
-        resp = client.post("/change-password", data={
-            "current_password": DEFAULT_PASSWORD,
-            "new_password": "short",
-            "confirm_password": "short",
-        }, follow_redirects=True)
+        resp = client.post(
+            "/change-password",
+            data={
+                "current_password": DEFAULT_PASSWORD,
+                "new_password": "short",
+                "confirm_password": "short",
+            },
+            follow_redirects=True,
+        )
         assert "10" in text(resp)
 
     def test_new_passwords_mismatch(self, client, app):
         make_user(app, username="alice")
         login(client, "alice")
-        resp = client.post("/change-password", data={
-            "current_password": DEFAULT_PASSWORD,
-            "new_password": "newpassword123",
-            "confirm_password": "newpassword999",
-        }, follow_redirects=True)
+        resp = client.post(
+            "/change-password",
+            data={
+                "current_password": DEFAULT_PASSWORD,
+                "new_password": "newpassword123",
+                "confirm_password": "newpassword999",
+            },
+            follow_redirects=True,
+        )
         assert "do not match" in text(resp)
 
     def test_successful_change(self, client, app):
         make_user(app, username="alice")
         login(client, "alice")
         new_pw = "newpassword123"
-        resp = client.post("/change-password", data={
-            "current_password": DEFAULT_PASSWORD,
-            "new_password": new_pw,
-            "confirm_password": new_pw,
-        }, follow_redirects=True)
+        resp = client.post(
+            "/change-password",
+            data={
+                "current_password": DEFAULT_PASSWORD,
+                "new_password": new_pw,
+                "confirm_password": new_pw,
+            },
+            follow_redirects=True,
+        )
         assert "changed" in text(resp)
 
     def test_new_password_works_on_next_login(self, client, app):
         make_user(app, username="alice")
         login(client, "alice")
         new_pw = "newpassword123"
-        client.post("/change-password", data={
-            "current_password": DEFAULT_PASSWORD,
-            "new_password": new_pw,
-            "confirm_password": new_pw,
-        })
+        client.post(
+            "/change-password",
+            data={
+                "current_password": DEFAULT_PASSWORD,
+                "new_password": new_pw,
+                "confirm_password": new_pw,
+            },
+        )
         client.post("/logout")
         resp = login(client, "alice", password=new_pw)
         assert "welcome" in text(resp)

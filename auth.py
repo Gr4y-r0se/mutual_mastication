@@ -1,4 +1,5 @@
 """Authentication helpers: session-based current_user lookup and route decorators."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -32,6 +33,7 @@ def current_user():
 
 def login_required(view):
     """Decorator: redirect unauthenticated requests to /login with a ``next`` param."""
+
     @wraps(view)
     def wrapped(*args, **kwargs):
         if current_user() is None:
@@ -44,6 +46,7 @@ def login_required(view):
 
 def admin_required(view):
     """Decorator: redirect anonymous users to /login; abort 403 for non-admins."""
+
     @wraps(view)
     def wrapped(*args, **kwargs):
         user = current_user()

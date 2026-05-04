@@ -1,4 +1,5 @@
 """Restaurant routes: listing approved restaurants and submitting suggestions."""
+
 from __future__ import annotations
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
@@ -13,15 +14,13 @@ restaurant_bp = Blueprint("restaurants", __name__)
 @login_required
 def list_restaurants():
     db = get_db()
-    approved = db.execute(
-        """
+    approved = db.execute("""
         SELECT r.name, r.cuisine, r.description, r.address, r.link,
                u.username AS suggested_by, r.created_at
         FROM restaurants r JOIN users u ON u.id = r.suggested_by
         WHERE r.status = 'approved'
         ORDER BY r.name
-        """
-    ).fetchall()
+        """).fetchall()
     my_suggestions = db.execute(
         """
         SELECT id, name, cuisine, status, created_at

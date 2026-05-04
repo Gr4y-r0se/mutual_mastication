@@ -1,4 +1,5 @@
 """SQLite database helpers: per-request connection caching via Flask's g object."""
+
 from __future__ import annotations
 
 import sqlite3
@@ -38,8 +39,7 @@ def init_db() -> None:
     safe to call on an existing database.
     """
     db = get_db()
-    db.executescript(
-        """
+    db.executescript("""
         CREATE TABLE IF NOT EXISTS users (
             id              INTEGER PRIMARY KEY AUTOINCREMENT,
             username        TEXT UNIQUE NOT NULL,
@@ -101,8 +101,7 @@ def init_db() -> None:
 
         CREATE INDEX IF NOT EXISTS idx_votes_poll   ON votes(poll_id);
         CREATE INDEX IF NOT EXISTS idx_options_poll ON poll_options(poll_id);
-        """
-    )
+        """)
     db.commit()
     for stmt in [
         "ALTER TABLE restaurants ADD COLUMN link TEXT NOT NULL DEFAULT ''",

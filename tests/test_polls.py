@@ -1,11 +1,19 @@
 """Integration tests for poll viewing and voting routes."""
+
 from __future__ import annotations
 
 import database as _db_mod
-from tests.conftest import get_db_value, get_option_ids, login, make_poll, make_user, text
-
+from tests.conftest import (
+    get_db_value,
+    get_option_ids,
+    login,
+    make_poll,
+    make_user,
+    text,
+)
 
 # ── / (poll list) ──────────────────────────────────────────────────────────────
+
 
 class TestIndex:
     def test_loads_unauthenticated(self, client):
@@ -34,6 +42,7 @@ class TestIndex:
 
 # ── /poll/<id> ─────────────────────────────────────────────────────────────────
 
+
 class TestViewPoll:
     def test_redirects_to_login_when_unauthenticated(self, client, app):
         u = make_user(app, username="admin", is_admin=1)
@@ -60,8 +69,9 @@ class TestViewPoll:
     def test_date_poll_renders_calendar(self, client, app):
         u = make_user(app, username="admin", is_admin=1)
         login(client, "admin")
-        poll_id = make_poll(app, u["id"], poll_type="date",
-                            options=("2025-11-15", "2025-11-22"))
+        poll_id = make_poll(
+            app, u["id"], poll_type="date", options=("2025-11-15", "2025-11-22")
+        )
         resp = client.get(f"/poll/{poll_id}")
         assert resp.status_code == 200
         assert "november" in text(resp)
@@ -69,7 +79,9 @@ class TestViewPoll:
     def test_closed_poll_shows_results(self, client, app):
         u = make_user(app, username="admin", is_admin=1)
         login(client, "admin")
-        poll_id = make_poll(app, u["id"], status="closed", options=("Hawksmoor", "Gaucho"))
+        poll_id = make_poll(
+            app, u["id"], status="closed", options=("Hawksmoor", "Gaucho")
+        )
         resp = client.get(f"/poll/{poll_id}")
         assert "final results" in text(resp)
 
@@ -91,6 +103,7 @@ class TestViewPoll:
 
 # ── /poll/<id>/vote ────────────────────────────────────────────────────────────
 
+
 class TestVote:
     def _setup(self, app, client, vote_mode="single", options=("Hawksmoor", "Gaucho")):
         u = make_user(app, username="admin", is_admin=1)
@@ -109,18 +122,27 @@ class TestVote:
 
     def test_single_vote_recorded(self, client, app):
         uid, poll_id, opt_ids = self._setup(app, client)
-        resp = client.post(f"/poll/{poll_id}/vote",
-                           data={"option_id": opt_ids[0]}, follow_redirects=True)
+        resp = client.post(
+            f"/poll/{poll_id}/vote",
+            data={"option_id": opt_ids[0]},
+            follow_redirects=True,
+        )
         assert "vote has been recorded" in text(resp)
-        row = get_db_value(app, "SELECT COUNT(*) AS n FROM votes WHERE poll_id = ?", (poll_id,))
+        row = get_db_value(
+            app, "SELECT COUNT(*) AS n FROM votes WHERE poll_id = ?", (poll_id,)
+        )
         assert row["n"] == 1
 
     def test_approval_vote_records_multiple(self, client, app):
-        uid, poll_id, opt_ids = self._setup(app, client, vote_mode="approval",
-                                             options=("A", "B", "C"))
-        client.post(f"/poll/{poll_id}/vote",
-                    data={"option_ids": [opt_ids[0], opt_ids[2]]})
-        row = get_db_value(app, "SELECT COUNT(*) AS n FROM votes WHERE poll_id = ?", (poll_id,))
+        uid, poll_id, opt_ids = self._setup(
+            app, client, vote_mode="approval", options=("A", "B", "C")
+        )
+        client.post(
+            f"/poll/{poll_id}/vote", data={"option_ids": [opt_ids[0], opt_ids[2]]}
+        )
+        row = get_db_value(
+            app, "SELECT COUNT(*) AS n FROM votes WHERE poll_id = ?", (poll_id,)
+        )
         assert row["n"] == 2
 
     def test_second_vote_replaces_first(self, client, app):
@@ -128,9 +150,11 @@ class TestVote:
         client.post(f"/poll/{poll_id}/vote", data={"option_id": opt_ids[0]})
         client.post(f"/poll/{poll_id}/vote", data={"option_id": opt_ids[1]})
         with app.app_context():
-            rows = _db_mod.get_db().execute(
-                "SELECT option_id FROM votes WHERE poll_id = ?", (poll_id,)
-            ).fetchall()
+            rows = (
+                _db_mod.get_db()
+                .execute("SELECT option_id FROM votes WHERE poll_id = ?", (poll_id,))
+                .fetchall()
+            )
         assert len(rows) == 1
         assert rows[0]["option_id"] == opt_ids[1]
 
@@ -138,7 +162,9 @@ class TestVote:
         uid, poll_id, opt_ids = self._setup(app, client)
         client.post(f"/poll/{poll_id}/vote", data={"option_id": opt_ids[0]})
         client.post(f"/poll/{poll_id}/vote", data={})  # clear
-        row = get_db_value(app, "SELECT COUNT(*) AS n FROM votes WHERE poll_id = ?", (poll_id,))
+        row = get_db_value(
+            app, "SELECT COUNT(*) AS n FROM votes WHERE poll_id = ?", (poll_id,)
+        )
         assert row["n"] == 0
 
     def test_voting_on_closed_poll_shows_error(self, client, app):
@@ -146,8 +172,11 @@ class TestVote:
         login(client, "admin")
         poll_id = make_poll(app, u["id"], status="closed")
         opt_ids = get_option_ids(app, poll_id)
-        resp = client.post(f"/poll/{poll_id}/vote",
-                           data={"option_id": opt_ids[0]}, follow_redirects=True)
+        resp = client.post(
+            f"/poll/{poll_id}/vote",
+            data={"option_id": opt_ids[0]},
+            follow_redirects=True,
+        )
         assert "closed" in text(resp)
 
     def test_invalid_option_id_returns_400(self, client, app):

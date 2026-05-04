@@ -1,10 +1,11 @@
 """Unit tests for config.py — regex constants and secret-key loading."""
+
 from __future__ import annotations
 
 import config
 
-
 # ── USERNAME_RE ────────────────────────────────────────────────────────────────
+
 
 class TestUsernameRe:
     def test_valid_lowercase(self):
@@ -46,6 +47,7 @@ class TestUsernameRe:
 
 # ── EMAIL_RE ───────────────────────────────────────────────────────────────────
 
+
 class TestEmailRe:
     def test_valid_standard(self):
         assert config.EMAIL_RE.match("user@example.com")
@@ -70,6 +72,7 @@ class TestEmailRe:
 
 
 # ── _load_secret_key ───────────────────────────────────────────────────────────
+
 
 class TestLoadSecretKey:
     def test_reads_from_env(self, monkeypatch):

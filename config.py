@@ -1,4 +1,5 @@
 """Application configuration: constants, compiled regexes, and secret-key loading."""
+
 from __future__ import annotations
 
 import os

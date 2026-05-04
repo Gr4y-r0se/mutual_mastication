@@ -1,12 +1,13 @@
 """Unit tests for email_service.py — all SES calls are mocked."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
 import email_service
 
-
 # ── _email_html ────────────────────────────────────────────────────────────────
+
 
 class TestEmailHtml:
     def test_contains_brand_name(self):
@@ -47,6 +48,7 @@ class TestEmailHtml:
 
 
 # ── _send ──────────────────────────────────────────────────────────────────────
+
 
 class TestSend:
     def test_returns_false_when_no_sender(self, monkeypatch):
@@ -101,6 +103,7 @@ class TestSend:
 
     def test_returns_false_on_ses_error(self, monkeypatch):
         from botocore.exceptions import ClientError
+
         monkeypatch.setenv("SES_FROM_ADDRESS", "from@example.com")
         mock_ses = MagicMock()
         mock_ses.send_email.side_effect = ClientError(
@@ -113,6 +116,7 @@ class TestSend:
 
 # ── send_poll_created ──────────────────────────────────────────────────────────
 
+
 def _mock_db(emails=("a@b.com",)):
     db = MagicMock()
     db.execute.return_value.fetchall.return_value = [{"email": e} for e in emails]
@@ -123,8 +127,12 @@ class TestSendPollCreated:
     def _call(self, monkeypatch, poll=None):
         monkeypatch.setenv("SES_FROM_ADDRESS", "from@example.com")
         mock_ses = MagicMock()
-        poll = poll or {"id": 1, "title": "November dinner",
-                        "description": "", "end_date": "2025-11-30 18:00"}
+        poll = poll or {
+            "id": 1,
+            "title": "November dinner",
+            "description": "",
+            "end_date": "2025-11-30 18:00",
+        }
         with patch("email_service._client", return_value=mock_ses):
             email_service.send_poll_created(poll, _mock_db())
         return mock_ses.send_email.call_args[1]["Message"]
@@ -138,9 +146,15 @@ class TestSendPollCreated:
         assert "November dinner" in msg["Body"]["Html"]["Data"]
 
     def test_html_contains_description(self, monkeypatch):
-        msg = self._call(monkeypatch, poll={
-            "id": 1, "title": "T", "description": "Bring appetite", "end_date": None
-        })
+        msg = self._call(
+            monkeypatch,
+            poll={
+                "id": 1,
+                "title": "T",
+                "description": "Bring appetite",
+                "end_date": None,
+            },
+        )
         assert "Bring appetite" in msg["Body"]["Html"]["Data"]
 
     def test_plain_text_contains_url(self, monkeypatch, monkeypatch_setenv=None):
@@ -157,6 +171,7 @@ class TestSendPollCreated:
 
 # ── send_polls_closing_soon ────────────────────────────────────────────────────
 
+
 class TestSendPollsClosingSoon:
     def _call(self, monkeypatch, polls):
         monkeypatch.setenv("SES_FROM_ADDRESS", "from@example.com")
@@ -166,30 +181,38 @@ class TestSendPollsClosingSoon:
         return mock_ses.send_email.call_args[1]["Message"]
 
     def test_single_poll_subject_contains_title(self, monkeypatch):
-        msg = self._call(monkeypatch, [
-            {"id": 1, "title": "November dinner", "end_date": "2025-11-30 18:00"}
-        ])
+        msg = self._call(
+            monkeypatch,
+            [{"id": 1, "title": "November dinner", "end_date": "2025-11-30 18:00"}],
+        )
         assert "November dinner" in msg["Subject"]["Data"]
 
     def test_multiple_polls_subject_generic(self, monkeypatch):
-        msg = self._call(monkeypatch, [
-            {"id": 1, "title": "Poll A", "end_date": "2025-11-30 18:00"},
-            {"id": 2, "title": "Poll B", "end_date": "2025-11-30 19:00"},
-        ])
+        msg = self._call(
+            monkeypatch,
+            [
+                {"id": 1, "title": "Poll A", "end_date": "2025-11-30 18:00"},
+                {"id": 2, "title": "Poll B", "end_date": "2025-11-30 19:00"},
+            ],
+        )
         subj = msg["Subject"]["Data"].lower()
         assert "polls" in subj or "tomorrow" in subj
 
     def test_html_lists_all_polls(self, monkeypatch):
-        msg = self._call(monkeypatch, [
-            {"id": 1, "title": "Poll Alpha", "end_date": "2025-11-30 18:00"},
-            {"id": 2, "title": "Poll Beta",  "end_date": "2025-11-30 19:00"},
-        ])
+        msg = self._call(
+            monkeypatch,
+            [
+                {"id": 1, "title": "Poll Alpha", "end_date": "2025-11-30 18:00"},
+                {"id": 2, "title": "Poll Beta", "end_date": "2025-11-30 19:00"},
+            ],
+        )
         html = msg["Body"]["Html"]["Data"]
         assert "Poll Alpha" in html
         assert "Poll Beta" in html
 
 
 # ── send_polls_closed ──────────────────────────────────────────────────────────
+
 
 class TestSendPollsClosed:
     def _call(self, monkeypatch, polls):
@@ -204,21 +227,22 @@ class TestSendPollsClosed:
         assert "November dinner" in msg["Subject"]["Data"]
 
     def test_multiple_polls_subject_mentions_results(self, monkeypatch):
-        msg = self._call(monkeypatch, [
-            {"id": 1, "title": "A"}, {"id": 2, "title": "B"}
-        ])
+        msg = self._call(
+            monkeypatch, [{"id": 1, "title": "A"}, {"id": 2, "title": "B"}]
+        )
         assert "results" in msg["Subject"]["Data"].lower()
 
     def test_html_links_all_polls(self, monkeypatch):
-        msg = self._call(monkeypatch, [
-            {"id": 3, "title": "Gamma"}, {"id": 4, "title": "Delta"}
-        ])
+        msg = self._call(
+            monkeypatch, [{"id": 3, "title": "Gamma"}, {"id": 4, "title": "Delta"}]
+        )
         html = msg["Body"]["Html"]["Data"]
         assert "Gamma" in html
         assert "Delta" in html
 
 
 # ── send_password_reset ────────────────────────────────────────────────────────
+
 
 class TestSendPasswordReset:
     def _call(self, monkeypatch, reset_url="https://example.com/reset/abc123"):

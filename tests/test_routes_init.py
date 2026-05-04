@@ -1,11 +1,12 @@
 """Unit tests for shared route utilities (mobile detection, security headers)."""
+
 from __future__ import annotations
 
 from routes import _is_mobile
 from tests.conftest import text
 
-
 # ── _is_mobile ─────────────────────────────────────────────────────────────────
+
 
 class TestIsMobile:
     def test_iphone(self):
@@ -14,9 +15,7 @@ class TestIsMobile:
         )
 
     def test_android(self):
-        assert _is_mobile(
-            "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36"
-        )
+        assert _is_mobile("Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36")
 
     def test_ipad(self):
         assert _is_mobile(
@@ -52,6 +51,7 @@ class TestIsMobile:
 
 
 # ── Security headers ───────────────────────────────────────────────────────────
+
 
 class TestSecurityHeaders:
     def test_x_frame_options(self, client):

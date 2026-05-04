@@ -1,9 +1,17 @@
 """Integration tests for admin routes."""
+
 from __future__ import annotations
 
 import database as _db_mod
 import pytest
-from tests.conftest import DEFAULT_PASSWORD, get_db_value, login, make_poll, make_user, text
+from tests.conftest import (
+    DEFAULT_PASSWORD,
+    get_db_value,
+    login,
+    make_poll,
+    make_user,
+    text,
+)
 
 
 def _get_uid(app, username):
@@ -12,6 +20,7 @@ def _get_uid(app, username):
 
 
 # ── /admin (dashboard) ─────────────────────────────────────────────────────────
+
 
 class TestDashboard:
     def test_unauthenticated_redirected(self, client):
@@ -44,6 +53,7 @@ class TestDashboard:
 
 # ── /admin/poll/new ────────────────────────────────────────────────────────────
 
+
 class TestNewPoll:
     def _login_admin(self, client, app):
         make_user(app, username="admin", is_admin=1)
@@ -65,71 +75,98 @@ class TestNewPoll:
     def test_create_date_poll(self, client, app, monkeypatch):
         monkeypatch.setattr("email_service.send_poll_created", lambda *a, **kw: True)
         uid = self._login_admin(client, app)
-        resp = client.post("/admin/poll/new", data={
-            "title": "When to meet",
-            "description": "",
-            "poll_type": "date",
-            "vote_mode": "approval",
-            "options": "2025-11-15\n2025-11-22",
-        }, follow_redirects=True)
+        resp = client.post(
+            "/admin/poll/new",
+            data={
+                "title": "When to meet",
+                "description": "",
+                "poll_type": "date",
+                "vote_mode": "approval",
+                "options": "2025-11-15\n2025-11-22",
+            },
+            follow_redirects=True,
+        )
         assert resp.status_code == 200
-        row = get_db_value(app, "SELECT COUNT(*) AS n FROM polls WHERE title = 'When to meet'")
+        row = get_db_value(
+            app, "SELECT COUNT(*) AS n FROM polls WHERE title = 'When to meet'"
+        )
         assert row["n"] == 1
 
     def test_create_restaurant_poll(self, client, app, monkeypatch):
         monkeypatch.setattr("email_service.send_poll_created", lambda *a, **kw: True)
         uid = self._login_admin(client, app)
         rid = self._add_restaurant(app, uid)
-        resp = client.post("/admin/poll/new", data={
-            "title": "Where to eat",
-            "description": "",
-            "poll_type": "restaurant",
-            "vote_mode": "single",
-            "restaurant_ids": [rid],
-        }, follow_redirects=True)
+        resp = client.post(
+            "/admin/poll/new",
+            data={
+                "title": "Where to eat",
+                "description": "",
+                "poll_type": "restaurant",
+                "vote_mode": "single",
+                "restaurant_ids": [rid],
+            },
+            follow_redirects=True,
+        )
         assert resp.status_code == 200
-        row = get_db_value(app, "SELECT COUNT(*) AS n FROM polls WHERE title = 'Where to eat'")
+        row = get_db_value(
+            app, "SELECT COUNT(*) AS n FROM polls WHERE title = 'Where to eat'"
+        )
         assert row["n"] == 1
 
     def test_too_few_options_rejected(self, client, app, monkeypatch):
         monkeypatch.setattr("email_service.send_poll_created", lambda *a, **kw: True)
         self._login_admin(client, app)
-        resp = client.post("/admin/poll/new", data={
-            "title": "One option only",
-            "poll_type": "date",
-            "vote_mode": "approval",
-            "options": "2025-11-15",
-        }, follow_redirects=True)
+        resp = client.post(
+            "/admin/poll/new",
+            data={
+                "title": "One option only",
+                "poll_type": "date",
+                "vote_mode": "approval",
+                "options": "2025-11-15",
+            },
+            follow_redirects=True,
+        )
         assert "two" in text(resp) or "2" in text(resp)
 
     def test_duplicate_dates_deduplicated(self, client, app, monkeypatch):
         monkeypatch.setattr("email_service.send_poll_created", lambda *a, **kw: True)
         self._login_admin(client, app)
-        client.post("/admin/poll/new", data={
-            "title": "Dedup test",
-            "poll_type": "date",
-            "vote_mode": "approval",
-            "options": "2025-11-15\n2025-11-15\n2025-11-22",
-        }, follow_redirects=True)
-        row = get_db_value(app,
-                           "SELECT COUNT(*) AS n FROM poll_options po"
-                           " JOIN polls p ON p.id = po.poll_id"
-                           " WHERE p.title = 'Dedup test'")
+        client.post(
+            "/admin/poll/new",
+            data={
+                "title": "Dedup test",
+                "poll_type": "date",
+                "vote_mode": "approval",
+                "options": "2025-11-15\n2025-11-15\n2025-11-22",
+            },
+            follow_redirects=True,
+        )
+        row = get_db_value(
+            app,
+            "SELECT COUNT(*) AS n FROM poll_options po"
+            " JOIN polls p ON p.id = po.poll_id"
+            " WHERE p.title = 'Dedup test'",
+        )
         assert row["n"] == 2
 
     def test_notify_called_on_creation(self, client, app, monkeypatch):
         called = {}
+
         def fake_notify(poll, db):
             called["poll"] = poll
             return True
+
         monkeypatch.setattr("email_service.send_poll_created", fake_notify)
         uid = self._login_admin(client, app)
-        client.post("/admin/poll/new", data={
-            "title": "Notif test",
-            "poll_type": "date",
-            "vote_mode": "approval",
-            "options": "2025-11-15\n2025-11-22",
-        })
+        client.post(
+            "/admin/poll/new",
+            data={
+                "title": "Notif test",
+                "poll_type": "date",
+                "vote_mode": "approval",
+                "options": "2025-11-15\n2025-11-22",
+            },
+        )
         assert called.get("poll", {}).get("title") == "Notif test"
 
     def test_member_cannot_create_poll(self, client, app):
@@ -140,6 +177,7 @@ class TestNewPoll:
 
 
 # ── Poll status actions ────────────────────────────────────────────────────────
+
 
 class TestPollStatusActions:
     def _setup(self, app, client):
@@ -181,15 +219,20 @@ class TestPollStatusActions:
             opt_id = db.execute(
                 "SELECT id FROM poll_options WHERE poll_id = ? LIMIT 1", (poll_id,)
             ).fetchone()["id"]
-            db.execute("INSERT INTO votes (poll_id, option_id, user_id) VALUES (?, ?, ?)",
-                       (poll_id, opt_id, uid))
+            db.execute(
+                "INSERT INTO votes (poll_id, option_id, user_id) VALUES (?, ?, ?)",
+                (poll_id, opt_id, uid),
+            )
             db.commit()
         client.post(f"/admin/poll/{poll_id}/delete")
-        row = get_db_value(app, "SELECT COUNT(*) AS n FROM votes WHERE poll_id = ?", (poll_id,))
+        row = get_db_value(
+            app, "SELECT COUNT(*) AS n FROM votes WHERE poll_id = ?", (poll_id,)
+        )
         assert row["n"] == 0
 
 
 # ── /admin/user/new ────────────────────────────────────────────────────────────
+
 
 class TestNewUser:
     def _login_admin(self, client, app):
@@ -198,47 +241,62 @@ class TestNewUser:
 
     def test_create_member(self, client, app):
         self._login_admin(client, app)
-        client.post("/admin/user/new", data={
-            "username": "bob",
-            "email": "bob@example.com",
-            "password": DEFAULT_PASSWORD,
-        })
+        client.post(
+            "/admin/user/new",
+            data={
+                "username": "bob",
+                "email": "bob@example.com",
+                "password": DEFAULT_PASSWORD,
+            },
+        )
         row = get_db_value(app, "SELECT is_admin FROM users WHERE username = 'bob'")
         assert row is not None
         assert row["is_admin"] == 0
 
     def test_create_admin(self, client, app):
         self._login_admin(client, app)
-        client.post("/admin/user/new", data={
-            "username": "bob",
-            "email": "bob@example.com",
-            "password": DEFAULT_PASSWORD,
-            "is_admin": "1",
-        })
+        client.post(
+            "/admin/user/new",
+            data={
+                "username": "bob",
+                "email": "bob@example.com",
+                "password": DEFAULT_PASSWORD,
+                "is_admin": "1",
+            },
+        )
         row = get_db_value(app, "SELECT is_admin FROM users WHERE username = 'bob'")
         assert row["is_admin"] == 1
 
     def test_duplicate_username_rejected(self, client, app):
         self._login_admin(client, app)
         make_user(app, username="bob", email="bob@example.com")
-        resp = client.post("/admin/user/new", data={
-            "username": "bob",
-            "email": "bob2@example.com",
-            "password": DEFAULT_PASSWORD,
-        }, follow_redirects=True)
+        resp = client.post(
+            "/admin/user/new",
+            data={
+                "username": "bob",
+                "email": "bob2@example.com",
+                "password": DEFAULT_PASSWORD,
+            },
+            follow_redirects=True,
+        )
         assert "not available" in text(resp)
 
     def test_short_password_rejected(self, client, app):
         self._login_admin(client, app)
-        resp = client.post("/admin/user/new", data={
-            "username": "bob",
-            "email": "bob@example.com",
-            "password": "short",
-        }, follow_redirects=True)
+        resp = client.post(
+            "/admin/user/new",
+            data={
+                "username": "bob",
+                "email": "bob@example.com",
+                "password": "short",
+            },
+            follow_redirects=True,
+        )
         assert "10" in text(resp)
 
 
 # ── User management ────────────────────────────────────────────────────────────
+
 
 class TestUserManagement:
     def _login_admin(self, client, app):
@@ -270,13 +328,17 @@ class TestUserManagement:
         bob = make_user(app, username="bob", email="bob@example.com")
         with app.app_context():
             db = _db_mod.get_db()
-            db.execute("UPDATE users SET locked_until = 9999999999, failed_attempts = 5 WHERE id = ?",
-                       (bob["id"],))
+            db.execute(
+                "UPDATE users SET locked_until = 9999999999, failed_attempts = 5 WHERE id = ?",
+                (bob["id"],),
+            )
             db.commit()
         client.post(f"/admin/user/{bob['id']}/unlock")
-        row = get_db_value(app,
-                           "SELECT locked_until, failed_attempts FROM users WHERE id = ?",
-                           (bob["id"],))
+        row = get_db_value(
+            app,
+            "SELECT locked_until, failed_attempts FROM users WHERE id = ?",
+            (bob["id"],),
+        )
         assert row["locked_until"] is None
         assert row["failed_attempts"] == 0
 
@@ -306,7 +368,7 @@ class TestUserManagement:
         with app.app_context():
             _db_mod.get_db().execute(
                 "INSERT INTO restaurants (name, suggested_by) VALUES ('Gaucho', ?)",
-                (bob["id"],)
+                (bob["id"],),
             )
             _db_mod.get_db().commit()
         resp = client.post(f"/admin/user/{bob['id']}/delete", follow_redirects=True)
@@ -314,6 +376,7 @@ class TestUserManagement:
 
 
 # ── Restaurant moderation ──────────────────────────────────────────────────────
+
 
 class TestRestaurantModeration:
     def _login_admin(self, client, app):
@@ -326,7 +389,7 @@ class TestRestaurantModeration:
             db = _db_mod.get_db()
             cursor = db.execute(
                 "INSERT INTO restaurants (name, suggested_by, status) VALUES ('Hawksmoor', ?, 'pending')",
-                (uid,)
+                (uid,),
             )
             rid = cursor.lastrowid
             db.commit()

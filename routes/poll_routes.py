@@ -1,4 +1,5 @@
 """Poll viewing, voting, and calendar-rendering routes."""
+
 from __future__ import annotations
 
 import calendar as cal_module
@@ -46,9 +47,11 @@ def _build_calendar_data(options, my_votes, voters_by_option):
                 "month_name": cal_module.month_name[month],
                 "weeks": [
                     [
-                        {"day": day, "option": opts_by_day.get(day)}
-                        if day != 0
-                        else None
+                        (
+                            {"day": day, "option": opts_by_day.get(day)}
+                            if day != 0
+                            else None
+                        )
                         for day in week
                     ]
                     for week in weeks
@@ -61,8 +64,7 @@ def _build_calendar_data(options, my_votes, voters_by_option):
 @poll_bp.route("/")
 def index():
     db = get_db()
-    polls = db.execute(
-        """
+    polls = db.execute("""
         SELECT p.id, p.title, p.description, p.poll_type, p.vote_mode,
                p.status, p.created_at, u.username AS creator,
                (SELECT COUNT(*) FROM poll_options o WHERE o.poll_id = p.id)
@@ -71,8 +73,7 @@ def index():
         JOIN users u ON u.id = p.created_by
         ORDER BY (p.status = 'open') DESC, p.created_at DESC
         LIMIT 50
-        """
-    ).fetchall()
+        """).fetchall()
     return render_template("index.html", polls=polls)
 
 

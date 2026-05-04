@@ -1,4 +1,5 @@
 """Admin-only routes: dashboard, poll/user management, and restaurant moderation."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -123,7 +124,12 @@ def new_poll():
         db.commit()
 
         send_poll_created(
-            {"id": poll_id, "title": title, "description": description, "end_date": end_date},
+            {
+                "id": poll_id,
+                "title": title,
+                "description": description,
+                "end_date": end_date,
+            },
             db,
         )
 
@@ -291,24 +297,20 @@ def delete_user(user_id):
 @admin_required
 def restaurants():
     db = get_db()
-    pending = db.execute(
-        """
+    pending = db.execute("""
         SELECT r.id, r.name, r.cuisine, r.description, r.address,
                u.username AS suggested_by, r.created_at
         FROM restaurants r JOIN users u ON u.id = r.suggested_by
         WHERE r.status = 'pending'
         ORDER BY r.created_at ASC
-        """
-    ).fetchall()
-    approved = db.execute(
-        """
+        """).fetchall()
+    approved = db.execute("""
         SELECT r.id, r.name, r.cuisine, r.description, r.address,
                u.username AS suggested_by, r.created_at
         FROM restaurants r JOIN users u ON u.id = r.suggested_by
         WHERE r.status = 'approved'
         ORDER BY r.name
-        """
-    ).fetchall()
+        """).fetchall()
     return render_template("admin_restaurants.html", pending=pending, approved=approved)
 
 
@@ -322,9 +324,11 @@ def approve_restaurant(restaurant_id):
     )
     db.commit()
     flash(
-        "Restaurant approved."
-        if result.rowcount
-        else "Not found or already processed.",
+        (
+            "Restaurant approved."
+            if result.rowcount
+            else "Not found or already processed."
+        ),
         "success" if result.rowcount else "error",
     )
     return redirect(url_for("admin.restaurants"))
@@ -340,9 +344,11 @@ def reject_restaurant(restaurant_id):
     )
     db.commit()
     flash(
-        "Restaurant rejected."
-        if result.rowcount
-        else "Not found or already processed.",
+        (
+            "Restaurant rejected."
+            if result.rowcount
+            else "Not found or already processed."
+        ),
         "success" if result.rowcount else "error",
     )
     return redirect(url_for("admin.restaurants"))

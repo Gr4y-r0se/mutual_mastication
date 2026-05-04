@@ -1,4 +1,5 @@
 """Unit tests for _build_calendar_data — the pure calendar-construction helper."""
+
 from __future__ import annotations
 
 import calendar
@@ -11,6 +12,7 @@ def _opt(id_, label, vote_count=0):
 
 
 # ── Invalid input ──────────────────────────────────────────────────────────────
+
 
 class TestInvalidInput:
     def test_returns_none_for_non_date_label(self):
@@ -25,6 +27,7 @@ class TestInvalidInput:
 
 
 # ── Month structure ────────────────────────────────────────────────────────────
+
 
 class TestMonthStructure:
     def test_single_month(self):
@@ -64,6 +67,7 @@ class TestMonthStructure:
 
 # ── Option placement ───────────────────────────────────────────────────────────
 
+
 class TestOptionPlacement:
     def _find_day(self, result, day):
         for week in result[0]["weeks"]:
@@ -92,6 +96,7 @@ class TestOptionPlacement:
 
 
 # ── Voted state ────────────────────────────────────────────────────────────────
+
 
 class TestVotedState:
     def _find_opt_cell(self, result, opt_id):

@@ -1,4 +1,5 @@
 """Blueprint registration, mobile detection, error handlers, and security headers."""
+
 from .admin_routes import admin_bp
 from .auth_routes import auth_bp
 from .poll_routes import poll_bp

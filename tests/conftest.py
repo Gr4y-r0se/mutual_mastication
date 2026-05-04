@@ -11,6 +11,7 @@ CSRF
 ``WTF_CSRF_ENABLED`` is set to ``False`` on the test app after construction;
 Flask-WTF reads it at request time, so POST/DELETE requests need no token.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -22,6 +23,7 @@ DEFAULT_PASSWORD = "password1234"
 
 
 # ── Core fixtures ──────────────────────────────────────────────────────────────
+
 
 @pytest.fixture()
 def app(tmp_path, monkeypatch):
@@ -46,6 +48,7 @@ def client(app):
 
 # ── Database helpers ───────────────────────────────────────────────────────────
 
+
 def make_user(
     app,
     username="member",
@@ -65,8 +68,13 @@ def make_user(
         uid = db.execute(
             "SELECT id FROM users WHERE username = ?", (username,)
         ).fetchone()["id"]
-    return {"id": uid, "username": username, "email": email,
-            "password": password, "is_admin": is_admin}
+    return {
+        "id": uid,
+        "username": username,
+        "email": email,
+        "password": password,
+        "is_admin": is_admin,
+    }
 
 
 def make_poll(
@@ -99,9 +107,13 @@ def make_poll(
 def get_option_ids(app, poll_id: int) -> list[int]:
     """Return ordered list of option IDs for a poll."""
     with app.app_context():
-        rows = _db_mod.get_db().execute(
-            "SELECT id FROM poll_options WHERE poll_id = ? ORDER BY id", (poll_id,)
-        ).fetchall()
+        rows = (
+            _db_mod.get_db()
+            .execute(
+                "SELECT id FROM poll_options WHERE poll_id = ? ORDER BY id", (poll_id,)
+            )
+            .fetchall()
+        )
     return [r["id"] for r in rows]
 
 
@@ -112,6 +124,7 @@ def get_db_value(app, sql: str, params: tuple = ()):
 
 
 # ── Request helpers ────────────────────────────────────────────────────────────
+
 
 def login(client, username: str, password: str = DEFAULT_PASSWORD):
     """POST to /login and follow the redirect."""

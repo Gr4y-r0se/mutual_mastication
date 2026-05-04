@@ -5,6 +5,7 @@ Sends 24-hour warnings for polls closing soon, auto-closes expired polls,
 and sends closure notifications. Multiple polls triggering at the same time
 are batched into a single email.
 """
+
 from __future__ import annotations
 
 import logging

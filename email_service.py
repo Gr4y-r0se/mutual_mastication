@@ -1,4 +1,5 @@
 """AWS SES email delivery: HTML template builder and application-level send functions."""
+
 from __future__ import annotations
 
 import html as _html
@@ -29,7 +30,10 @@ def _all_emails(db) -> list[str]:
 
 # ── HTML email template ────────────────────────────────────────────────────────
 
-def _email_html(title: str, body_html: str, cta_text: str = "", cta_url: str = "") -> str:
+
+def _email_html(
+    title: str, body_html: str, cta_text: str = "", cta_url: str = ""
+) -> str:
     """Build a full HTML email document in the club's brand style.
 
     Renders a dark header, burgundy title band, white body, an optional CTA button,
@@ -43,71 +47,60 @@ def _email_html(title: str, body_html: str, cta_text: str = "", cta_url: str = "
             '<tr><td style="padding:0 32px 28px;">'
             '<a href="' + _html.escape(cta_url, quote=True) + '" '
             'style="display:inline-block;background:#8a1d1d;color:#ffffff;'
-            'font-family:Georgia,\'Times New Roman\',serif;font-size:15px;'
-            'font-weight:bold;text-decoration:none;padding:12px 28px;'
-            'border-radius:6px;">'
-            + _html.escape(cta_text) +
-            '</a></td></tr>'
+            "font-family:Georgia,'Times New Roman',serif;font-size:15px;"
+            "font-weight:bold;text-decoration:none;padding:12px 28px;"
+            'border-radius:6px;">' + _html.escape(cta_text) + "</a></td></tr>"
         )
 
     return (
-        '<!doctype html>'
+        "<!doctype html>"
         '<html lang="en">'
-        '<head>'
+        "<head>"
         '<meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
-        '<title>' + safe_title + '</title>'
-        '</head>'
+        "<title>" + safe_title + "</title>"
+        "</head>"
         '<body style="margin:0;padding:0;background:#ede5da;'
-        'font-family:Georgia,\'Times New Roman\',serif;">'
-
+        "font-family:Georgia,'Times New Roman',serif;\">"
         '<table role="presentation" cellpadding="0" cellspacing="0" width="100%"'
         ' style="background:#ede5da;padding:32px 16px;">'
         '<tr><td align="center">'
-
         '<table role="presentation" cellpadding="0" cellspacing="0"'
         ' style="max-width:560px;width:100%;">'
-
         # Header
         '<tr><td style="background:#2a1a14;border-radius:10px 10px 0 0;padding:22px 32px;">'
         '<p style="margin:0;font-size:20px;font-weight:bold;color:#faf6f1;'
         'letter-spacing:0.02em;">🥩 The Meat Ensemble</p>'
         '<p style="margin:5px 0 0;font-size:11px;color:rgba(250,246,241,0.5);'
         'text-transform:uppercase;letter-spacing:0.08em;">A monthly steak club</p>'
-        '</td></tr>'
-
+        "</td></tr>"
         # Title band
         '<tr><td style="background:#5e1212;padding:18px 32px;">'
         '<h1 style="margin:0;font-size:19px;color:#faf6f1;'
-        'font-family:Georgia,\'Times New Roman\',serif;font-weight:normal;'
-        'letter-spacing:0.01em;">' + safe_title + '</h1>'
-        '</td></tr>'
-
+        "font-family:Georgia,'Times New Roman',serif;font-weight:normal;"
+        'letter-spacing:0.01em;">' + safe_title + "</h1>"
+        "</td></tr>"
         # Body
         '<tr><td style="background:#ffffff;padding:28px 32px 8px;'
-        'font-size:15px;color:#2a1a14;line-height:1.65;">'
-        + body_html +
-        '</td></tr>'
-
+        'font-size:15px;color:#2a1a14;line-height:1.65;">' + body_html + "</td></tr>"
         # CTA (optional)
         + cta_block +
-
         # Footer
         '<tr><td style="background:#ffffff;border-radius:0 0 10px 10px;'
         'padding:16px 32px 28px;border-top:1px solid #e2d5c8;">'
         '<p style="margin:0;font-size:12px;color:#6b5a52;line-height:1.6;">'
         "You're receiving this because you're a member of The Meat Ensemble.<br>"
-        'Questions? Contact your group admin.'
-        '</p></td></tr>'
-
-        '</table>'  # inner
-        '</td></tr>'
-        '</table>'  # outer
-        '</body></html>'
+        "Questions? Contact your group admin."
+        "</p></td></tr>"
+        "</table>"  # inner
+        "</td></tr>"
+        "</table>"  # outer
+        "</body></html>"
     )
 
 
 # ── Send helper ────────────────────────────────────────────────────────────────
+
 
 def _send(to: list[str], subject: str, text: str, html: str = "") -> bool:
     """Send an email via SES with plain-text and optional HTML bodies.
@@ -139,6 +132,7 @@ def _send(to: list[str], subject: str, text: str, html: str = "") -> bool:
 
 # ── Email functions ────────────────────────────────────────────────────────────
 
+
 def send_poll_created(poll: dict, db) -> bool:
     """Notify all members that a new poll has been opened."""
     url = f"{_app_url()}/poll/{poll['id']}"
@@ -147,8 +141,7 @@ def send_poll_created(poll: dict, db) -> bool:
 
     # Plain text
     body_text = (
-        f"A new poll has been created on The Meat Ensemble.\n\n"
-        f"  {poll['title']}\n"
+        f"A new poll has been created on The Meat Ensemble.\n\n" f"  {poll['title']}\n"
     )
     if poll.get("description"):
         body_text += f"\n  {poll['description']}\n"
@@ -158,20 +151,27 @@ def send_poll_created(poll: dict, db) -> bool:
     safe_poll_title = _html.escape(poll["title"])
     safe_end = _html.escape(str(end))
     desc_block = (
-        '<p style="margin:0 0 12px;color:#6b5a52;">' + _html.escape(poll["description"]) + '</p>'
-        if poll.get("description") else ""
+        '<p style="margin:0 0 12px;color:#6b5a52;">'
+        + _html.escape(poll["description"])
+        + "</p>"
+        if poll.get("description")
+        else ""
     )
     body_html = (
         '<p style="margin:0 0 16px;">A new poll has been opened — head over and cast your vote.</p>'
         '<table role="presentation" cellpadding="0" cellspacing="0"'
         ' style="background:#faf6f1;border:1px solid #e2d5c8;border-radius:8px;'
         'padding:16px 20px;margin:0 0 20px;width:100%;">'
-        '<tr><td>'
-        '<p style="margin:0 0 6px;font-size:17px;font-weight:bold;color:#2a1a14;">' + safe_poll_title + '</p>'
-        + desc_block +
-        '<p style="margin:0;font-size:13px;color:#6b5a52;">Closes: ' + safe_end + '</p>'
-        '</td></tr>'
-        '</table>'
+        "<tr><td>"
+        '<p style="margin:0 0 6px;font-size:17px;font-weight:bold;color:#2a1a14;">'
+        + safe_poll_title
+        + "</p>"
+        + desc_block
+        + '<p style="margin:0;font-size:13px;color:#6b5a52;">Closes: '
+        + safe_end
+        + "</p>"
+        "</td></tr>"
+        "</table>"
     )
 
     html = _email_html(title, body_html, cta_text="Cast your vote", cta_url=url)
@@ -201,26 +201,32 @@ def send_polls_closing_soon(polls: list, db) -> bool:
 
     # HTML — escape all user-supplied values before interpolation
     rows = "".join(
-        '<tr>'
+        "<tr>"
         '<td style="padding:10px 0;border-bottom:1px solid #e2d5c8;">'
-        '<p style="margin:0 0 3px;font-weight:bold;color:#2a1a14;">' + _html.escape(p["title"]) + '</p>'
-        '<p style="margin:0;font-size:13px;color:#6b5a52;">Closes ' + _html.escape(str(p["end_date"])) + '</p>'
-        '</td>'
+        '<p style="margin:0 0 3px;font-weight:bold;color:#2a1a14;">'
+        + _html.escape(p["title"])
+        + "</p>"
+        '<p style="margin:0;font-size:13px;color:#6b5a52;">Closes '
+        + _html.escape(str(p["end_date"]))
+        + "</p>"
+        "</td>"
         '<td style="padding:10px 0 10px 16px;border-bottom:1px solid #e2d5c8;'
         'text-align:right;white-space:nowrap;vertical-align:middle;">'
-        '<a href="' + _html.escape(f"{base}/poll/{p['id']}", quote=True) + '" style="color:#8a1d1d;font-size:13px;">Vote →</a>'
-        '</td>'
-        '</tr>'
+        '<a href="'
+        + _html.escape(f"{base}/poll/{p['id']}", quote=True)
+        + '" style="color:#8a1d1d;font-size:13px;">Vote →</a>'
+        "</td>"
+        "</tr>"
         for p in polls
     )
     body_html = (
         '<p style="margin:0 0 16px;">The following poll'
-        + ('s close' if len(polls) > 1 else ' closes')
-        + ' within the next 24 hours. Make sure you\'ve had your say.</p>'
+        + ("s close" if len(polls) > 1 else " closes")
+        + " within the next 24 hours. Make sure you've had your say.</p>"
         '<table role="presentation" cellpadding="0" cellspacing="0"'
         ' style="width:100%;border-top:1px solid #e2d5c8;margin:0 0 16px;">'
-        + rows +
-        '</table>'
+        + rows
+        + "</table>"
     )
 
     html = _email_html(title, body_html, cta_text="Go to polls", cta_url=base)
@@ -238,10 +244,7 @@ def send_polls_closed(polls: list, db) -> bool:
     title = "The results are in"
 
     # Plain text
-    lines = "\n".join(
-        f"  • {p['title']} — {base}/poll/{p['id']}"
-        for p in polls
-    )
+    lines = "\n".join(f"  • {p['title']} — {base}/poll/{p['id']}" for p in polls)
     body_text = (
         "The following polls have now closed. See the results below.\n\n"
         f"{lines}\n\n"
@@ -250,25 +253,29 @@ def send_polls_closed(polls: list, db) -> bool:
 
     # HTML — escape all user-supplied values before interpolation
     rows = "".join(
-        '<tr>'
+        "<tr>"
         '<td style="padding:10px 0;border-bottom:1px solid #e2d5c8;">'
-        '<p style="margin:0;font-weight:bold;color:#2a1a14;">' + _html.escape(p["title"]) + '</p>'
-        '</td>'
+        '<p style="margin:0;font-weight:bold;color:#2a1a14;">'
+        + _html.escape(p["title"])
+        + "</p>"
+        "</td>"
         '<td style="padding:10px 0 10px 16px;border-bottom:1px solid #e2d5c8;'
         'text-align:right;white-space:nowrap;vertical-align:middle;">'
-        '<a href="' + _html.escape(f"{base}/poll/{p['id']}", quote=True) + '" style="color:#8a1d1d;font-size:13px;">See results →</a>'
-        '</td>'
-        '</tr>'
+        '<a href="'
+        + _html.escape(f"{base}/poll/{p['id']}", quote=True)
+        + '" style="color:#8a1d1d;font-size:13px;">See results →</a>'
+        "</td>"
+        "</tr>"
         for p in polls
     )
     body_html = (
         '<p style="margin:0 0 16px;">Voting has closed on the following poll'
-        + ('s' if len(polls) > 1 else '')
-        + '. Click through to see the final results.</p>'
+        + ("s" if len(polls) > 1 else "")
+        + ". Click through to see the final results.</p>"
         '<table role="presentation" cellpadding="0" cellspacing="0"'
         ' style="width:100%;border-top:1px solid #e2d5c8;margin:0 0 16px;">'
-        + rows +
-        '</table>'
+        + rows
+        + "</table>"
     )
 
     html = _email_html(title, body_html, cta_text="View all polls", cta_url=base)
@@ -291,12 +298,14 @@ def send_password_reset(to_email: str, reset_url: str) -> bool:
     body_html = (
         '<p style="margin:0 0 16px;">'
         "Someone requested a password reset for your Meat Ensemble account."
-        '</p>'
+        "</p>"
         '<p style="margin:0 0 24px;font-size:13px;color:#6b5a52;">'
         "This link expires in 1 hour. If you didn't request a reset, "
         "you can safely ignore this email — your password won't change."
-        '</p>'
+        "</p>"
     )
 
-    html = _email_html(title, body_html, cta_text="Reset my password", cta_url=reset_url)
+    html = _email_html(
+        title, body_html, cta_text="Reset my password", cta_url=reset_url
+    )
     return _send([to_email], subject, body_text, html)

@@ -1,4 +1,5 @@
 """Integration tests for restaurant listing and suggestion routes."""
+
 from __future__ import annotations
 
 import database as _db_mod
@@ -19,6 +20,7 @@ def _add_restaurant(app, uid, name="Hawksmoor", status="approved"):
 
 
 # ── /restaurants ───────────────────────────────────────────────────────────────
+
 
 class TestListRestaurants:
     def test_redirects_when_not_logged_in(self, client):
@@ -61,6 +63,7 @@ class TestListRestaurants:
 
 # ── /restaurants/suggest ───────────────────────────────────────────────────────
 
+
 class TestSuggestRestaurant:
     def test_requires_login(self, client):
         resp = client.post("/restaurants/suggest", data={"name": "Gaucho"})
@@ -69,13 +72,17 @@ class TestSuggestRestaurant:
     def test_valid_suggestion_created(self, client, app):
         make_user(app, username="alice")
         login(client, "alice")
-        resp = client.post("/restaurants/suggest", data={
-            "name": "Gaucho",
-            "cuisine": "Argentinian",
-            "address": "1 Strand, London",
-            "link": "https://gaucho.co.uk",
-            "description": "Great steaks",
-        }, follow_redirects=True)
+        resp = client.post(
+            "/restaurants/suggest",
+            data={
+                "name": "Gaucho",
+                "cuisine": "Argentinian",
+                "address": "1 Strand, London",
+                "link": "https://gaucho.co.uk",
+                "description": "Great steaks",
+            },
+            follow_redirects=True,
+        )
         assert "suggested" in text(resp) or "review" in text(resp)
         row = get_db_value(app, "SELECT status FROM restaurants WHERE name = 'Gaucho'")
         assert row is not None
@@ -84,8 +91,9 @@ class TestSuggestRestaurant:
     def test_suggestion_missing_name_rejected(self, client, app):
         make_user(app, username="alice")
         login(client, "alice")
-        resp = client.post("/restaurants/suggest",
-                           data={"name": ""}, follow_redirects=True)
+        resp = client.post(
+            "/restaurants/suggest", data={"name": ""}, follow_redirects=True
+        )
         assert "name" in text(resp)
         row = get_db_value(app, "SELECT COUNT(*) AS n FROM restaurants")
         assert row["n"] == 0
@@ -93,36 +101,48 @@ class TestSuggestRestaurant:
     def test_invalid_link_rejected(self, client, app):
         make_user(app, username="alice")
         login(client, "alice")
-        resp = client.post("/restaurants/suggest", data={
-            "name": "Gaucho",
-            "link": "not-a-url",
-        }, follow_redirects=True)
+        resp = client.post(
+            "/restaurants/suggest",
+            data={
+                "name": "Gaucho",
+                "link": "not-a-url",
+            },
+            follow_redirects=True,
+        )
         assert "http" in text(resp)
 
     def test_valid_https_link_accepted(self, client, app):
         make_user(app, username="alice")
         login(client, "alice")
-        client.post("/restaurants/suggest", data={
-            "name": "Gaucho",
-            "link": "https://gaucho.co.uk",
-        })
+        client.post(
+            "/restaurants/suggest",
+            data={
+                "name": "Gaucho",
+                "link": "https://gaucho.co.uk",
+            },
+        )
         row = get_db_value(app, "SELECT link FROM restaurants WHERE name = 'Gaucho'")
         assert row["link"] == "https://gaucho.co.uk"
 
     def test_name_too_long_rejected(self, client, app):
         make_user(app, username="alice")
         login(client, "alice")
-        resp = client.post("/restaurants/suggest",
-                           data={"name": "A" * 201}, follow_redirects=True)
+        resp = client.post(
+            "/restaurants/suggest", data={"name": "A" * 201}, follow_redirects=True
+        )
         assert "200" in text(resp) or "characters" in text(resp)
 
     def test_cuisine_too_long_rejected(self, client, app):
         make_user(app, username="alice")
         login(client, "alice")
-        resp = client.post("/restaurants/suggest", data={
-            "name": "Gaucho",
-            "cuisine": "C" * 101,
-        }, follow_redirects=True)
+        resp = client.post(
+            "/restaurants/suggest",
+            data={
+                "name": "Gaucho",
+                "cuisine": "C" * 101,
+            },
+            follow_redirects=True,
+        )
         assert "100" in text(resp) or "characters" in text(resp)
 
     def test_multiple_members_can_suggest(self, client, app):
