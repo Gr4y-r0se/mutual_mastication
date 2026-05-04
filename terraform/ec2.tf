@@ -38,15 +38,15 @@ resource "aws_instance" "app" {
   }
 
   user_data = templatefile("${path.module}/user_data.sh", {
-    app_name      = var.app_name
-    repo_url      = var.repo_url
-    domain_name   = var.domain_name
-    secret_key    = var.secret_key
-    certbot_email = var.certbot_email
+    app_name        = var.app_name
+    repo_url        = var.repo_url
+    domain_name     = var.domain_name
+    secret_key      = var.secret_key
+    certbot_email   = var.certbot_email
+    # Pre-computed so user_data.sh doesn't need conditional logic
+    certbot_domains = var.www_record ? "-d ${var.domain_name} -d www.${var.domain_name}" : "-d ${var.domain_name}"
+    server_name     = var.www_record ? "${var.domain_name} www.${var.domain_name}" : var.domain_name
   })
-
-  # Replace instance when user_data changes (triggers new bootstrap)
-  user_data_replace_on_change = true
 
   tags = { Name = var.app_name }
 }

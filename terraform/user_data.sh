@@ -10,6 +10,8 @@ REPO_URL="${repo_url}"
 DOMAIN="${domain_name}"
 SECRET_KEY="${secret_key}"
 CERTBOT_EMAIL="${certbot_email}"
+CERTBOT_DOMAINS="${certbot_domains}"
+NGINX_SERVER_NAME="${server_name}"
 
 # ── Derived paths ────────────────────────────────────────────────────────────
 APP_USER="appuser"
@@ -83,11 +85,22 @@ upstream meat_ensemble_upstream {
 server {
     listen      80;
     listen      [::]:80;
-    server_name DOMAIN_PLACEHOLDER www.DOMAIN_PLACEHOLDER;
+    server_name SERVER_NAME_PLACEHOLDER;
 
     # Let's Encrypt HTTP-01 challenge
     location /.well-known/acme-challenge/ {
         root /var/www/certbot;
+    }
+
+    location = /login {
+        limit_req        zone=login burst=5 nodelay;
+        limit_req_status 429;
+        proxy_pass         http://meat_ensemble_upstream;
+        proxy_redirect     off;
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
     }
 
     location / {
@@ -104,7 +117,7 @@ NGINX_CONF_EOF
 
 # Substitute the placeholders written above (avoids heredoc variable-expansion issues)
 sed -i "s|SOCKET_PLACEHOLDER|$SOCKET_DIR/app.sock|g" "/etc/nginx/conf.d/$APP_NAME.conf"
-sed -i "s|DOMAIN_PLACEHOLDER|$DOMAIN|g" "/etc/nginx/conf.d/$APP_NAME.conf"
+sed -i "s|SERVER_NAME_PLACEHOLDER|$NGINX_SERVER_NAME|g" "/etc/nginx/conf.d/$APP_NAME.conf"
 
 mkdir -p /var/www/certbot
 systemctl enable --now nginx
@@ -121,7 +134,7 @@ exec >> /var/log/certbot-setup.log 2>&1
 for attempt in \$(seq 1 30); do
     echo "[\$(date)] certbot attempt \$attempt..."
     if certbot --nginx \\
-        -d $DOMAIN -d www.$DOMAIN \\
+        $CERTBOT_DOMAINS \\
         --non-interactive --agree-tos \\
         -m $CERTBOT_EMAIL \\
         --redirect; then
@@ -136,7 +149,7 @@ for attempt in \$(seq 1 30); do
 done
 
 echo "[\$(date)] All 30 attempts failed. Check DNS propagation and re-run manually:"
-echo "  certbot --nginx -d $DOMAIN -d www.$DOMAIN --non-interactive --agree-tos -m $CERTBOT_EMAIL --redirect"
+echo "  certbot --nginx $CERTBOT_DOMAINS --non-interactive --agree-tos -m $CERTBOT_EMAIL --redirect"
 EOF
 chmod +x /usr/local/bin/certbot-setup.sh
 

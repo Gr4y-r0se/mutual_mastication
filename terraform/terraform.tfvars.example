@@ -1,7 +1,7 @@
 # Copy to terraform.tfvars and fill in your values.
 # Never commit terraform.tfvars — it contains the secret_key.
 
-aws_region = "ap-southeast-2"
+aws_region = "eu-west-2"
 app_name   = "meat-ensemble"
 
 # t4g.nano  = ~$3/mo  (512 MB RAM — workable but tight)
@@ -10,18 +10,18 @@ app_name   = "meat-ensemble"
 instance_type = "t4g.micro"
 
 # Your domain and the Route53 zone it lives in
-domain_name     = "steakclub.example.com"
-route53_zone_id = "Z1234567890ABCDEF"
-www_record      = true
+domain_name     = "themeatensemble.uk"
+route53_zone_id = "Z07471842KTHH201RTW88"
+www_record      = false
 
 # Git repo containing this project
-repo_url = "https://github.com/YOUR_USERNAME/mutual_mastication.git"
+repo_url = "https://github.com/gr4y-r0se/mutual_mastication.git"
 
 # Generate with: python3 -c "import secrets; print(secrets.token_hex(32))"
-secret_key = "replace-me-with-a-64-char-hex-string"
+secret_key = "KJSXHD789EWQ747893BNC423T684CB23789BC46238C46C2876C48235BC4823B5"
 
 # Used for Let's Encrypt registration
-certbot_email = "you@example.com"
+certbot_email = "liam@gr4y-r0se.com"
 
 # SSH access — leave key_name as null to use SSM Session Manager instead (recommended)
 # key_name          = "your-keypair-name"

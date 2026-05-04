@@ -45,9 +45,9 @@ variable "key_name" {
 }
 
 variable "ssh_allowed_cidrs" {
-  description = "CIDRs allowed to SSH. Only used when key_name is set. Restrict to your IP."
+  description = "CIDRs allowed to SSH. Only used when key_name is set. Restrict to your IP (e.g. [\"1.2.3.4/32\"])."
   type        = list(string)
-  default     = ["0.0.0.0/0"]
+  default     = []
 }
 
 variable "repo_url" {
