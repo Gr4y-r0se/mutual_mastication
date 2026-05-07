@@ -148,7 +148,7 @@ def login():
             next_url
             and next_url.startswith("/")
             and not next_url.startswith("//")
-            and not any(banned in next_url for banned in [" ", "\\", "\t", "\n"])
+            and not any(banned in next_url for banned in [" ", "\\", "\t", "\n", "\r"]) #Open Redirection protection - Redo this with netloc eventually
         ):
             return redirect(next_url)
         return redirect(url_for("polls.index"))
