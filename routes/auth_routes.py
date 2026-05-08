@@ -9,7 +9,9 @@ from flask import Blueprint, flash, redirect, render_template, request, session,
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from auth import _now_epoch, current_user, login_required
+from mfa import get_mfa_state, start_mfa_challenge
 from config import (
+    DATABASE,
     DUMMY_PASSWORD_HASH,
     EMAIL_RE,
     LOCKOUT_MINUTES,
@@ -138,20 +140,29 @@ def login():
         db.commit()
 
         session.clear()
-        session["user_id"] = user["id"]
-        session.permanent = True
-
-        flash(f"Welcome back, {user['username']}.", "success")
 
         next_url = request.args.get("next", "")
-        if (
+        safe_next = (
             next_url
-            and next_url.startswith("/")
-            and not next_url.startswith("//")
-            and not any(banned in next_url for banned in [" ", "\\", "\t", "\n"])
-        ):
-            return redirect(next_url)
-        return redirect(url_for("polls.index"))
+            if (
+                next_url
+                and next_url.startswith("/")
+                and not next_url.startswith("//")
+                and not any(banned in next_url for banned in [" ", "\\", "\t", "\n"])
+            )
+            else ""
+        )
+
+        if user["is_admin"]:
+            mfa_state = get_mfa_state(DATABASE, user["id"])
+            if mfa_state["enabled"]:
+                start_mfa_challenge(user["id"])
+                return redirect(url_for("mfa.verify", next=safe_next))
+
+        session["user_id"] = user["id"]
+        session.permanent = True
+        flash(f"Welcome back, {user['username']}.", "success")
+        return redirect(safe_next or url_for("polls.index"))
 
     return render_template("login.html")
 

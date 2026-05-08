@@ -43,6 +43,9 @@ def create_app() -> Flask:
     register_blueprints(app)
     with app.app_context():
         init_db()
+        from mfa import init_db_mfa
+        from config import DATABASE
+        init_db_mfa(DATABASE)
     return app
 
 
