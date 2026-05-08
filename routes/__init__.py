@@ -2,6 +2,7 @@
 
 from .admin_routes import admin_bp
 from .auth_routes import auth_bp
+from .mfa_routes import mfa_bp
 from .poll_routes import poll_bp
 from .restaurant_routes import restaurant_bp
 
@@ -43,6 +44,7 @@ def register_blueprints(app) -> None:
         }
 
     app.register_blueprint(auth_bp)
+    app.register_blueprint(mfa_bp)
     app.register_blueprint(poll_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(restaurant_bp)

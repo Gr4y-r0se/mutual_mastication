@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Two-Factor Authentication{% endblock %}
+
+{% block content %}
+<div class="form-card">
+  <h2>Two-Factor Authentication</h2>
+  <p>Enter the 6-digit code from your authenticator app to continue.</p>
+
+  <form method="post" action="{{ url_for('mfa.verify', next=request.args.get('next','')) }}"
+        class="mfa-form">
+    <label for="code">Authenticator code</label>
+    <input id="code" name="code" type="text" inputmode="numeric"
+           pattern="[0-9]{6}" maxlength="6" placeholder="000000"
+           autocomplete="one-time-code" required autofocus>
+    {% with messages = get_flashed_messages(category_filter=["error"]) %}
+      {% for msg in messages %}<p class="error">{{ msg }}</p>{% endfor %}
+    {% endwith %}
+    <button type="submit" class="btn-primary">Verify</button>
+  </form>
+</div>
+{% endblock %}

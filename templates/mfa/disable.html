@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Disable Two-Factor Authentication{% endblock %}
+
+{% block content %}
+<div class="form-card">
+  <h2>Disable Two-Factor Authentication</h2>
+  <p class="warning">This will remove the extra layer of security from your account.
+     Enter your current authenticator code to confirm.</p>
+
+  <form method="post" action="{{ url_for('mfa.disable') }}" class="mfa-form">
+    <label for="code">Authenticator code</label>
+    <input id="code" name="code" type="text" inputmode="numeric"
+           pattern="[0-9]{6}" maxlength="6" placeholder="000000"
+           autocomplete="one-time-code" required autofocus>
+    {% with messages = get_flashed_messages(category_filter=["error"]) %}
+      {% for msg in messages %}<p class="error">{{ msg }}</p>{% endfor %}
+    {% endwith %}
+    <button type="submit" class="btn-danger">Disable Two-Factor Auth</button>
+    <a href="{{ url_for('polls.index') }}" class="btn-secondary">Cancel</a>
+  </form>
+</div>
+{% endblock %}
